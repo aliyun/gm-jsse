@@ -389,8 +389,7 @@ public class GMSSLSocket extends SSLSocket {
         try {
             verified = ske.verify(signCert.getPublicKey(), securityParameters.clientRandom,
                     securityParameters.serverRandom, encryptionCert);
-        } catch (InvalidKeyException | CertificateEncodingException | InvalidAlgorithmParameterException
-                | SignatureException | NoSuchAlgorithmException e2) {
+        } catch (Exception e2) {
             throw new SSLException("server key exchange verify fails!", e2);
         }
 
