@@ -1,5 +1,6 @@
 package com.aliyun;
 
+import com.aliyun.gmsse.GMSSLSession;
 import org.junit.Assert;
 import org.junit.Test;
 

@@ -1,9 +1,9 @@
 package com.aliyun;
 
-import com.aliyun.crypto.Crypto;
-import com.aliyun.handshake.*;
-import com.aliyun.record.AppDataOutputStream;
-import com.aliyun.record.Handshake;
+import com.aliyun.gmsse.*;
+import com.aliyun.gmsse.crypto.Crypto;
+import com.aliyun.gmsse.record.AppDataOutputStream;
+import com.aliyun.gmsse.record.Handshake;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
 import org.junit.Assert;
 import org.junit.Test;

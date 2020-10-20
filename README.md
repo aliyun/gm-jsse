@@ -36,7 +36,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import java.net.URL;
 
-import com.aliyun.GMProvider;
+import com.aliyun.gmsse.GMProvider;
 
 public class Main {
 

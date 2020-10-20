@@ -1,5 +1,6 @@
 package com.aliyun;
 
+import com.aliyun.gmsse.CompressionMethod;
 import org.junit.Assert;
 import org.junit.Test;
 
