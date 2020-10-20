@@ -1,4 +1,4 @@
-English | [简体中文](./README-CN.md)
+[English](./README.md) | 简体中文
 
 <p align="center">
 <a href=" https://www.alibabacloud.com"><img src="https://aliyunsdk-pages.alicdn.com/icons/AlibabaCloud.svg"></a>
@@ -14,21 +14,21 @@ English | [简体中文](./README-CN.md)
 <a href="https://ci.appveyor.com/project/aliyun/gmsse"><img src="https://ci.appveyor.com/api/projects/status/levg38kb55k0pn1v/branch/master?svg=true"/></a>
 </p>
 
-## Requirements
+## 环境要求
 
 - The Alibaba Cloud Java SDK requires JDK 1.6 or later.
 
-## Installation
+## 安装依赖
 
 ```xml
 <dependency>
     <groupId>com.aliyun</groupId>
     <artifactId>gmsse</artifactId>
-    <version>{{see the version on the badge}}</version>
+    <version>{{使用maven标签所显示的版本}}</version>
 </dependency>
 ```
 
-## Usage
+## 快速使用
 
 ```java
 import javax.net.ssl.HttpsURLConnection;
@@ -41,7 +41,7 @@ import com.aliyun.GMProvider;
 public class Main {
 
     public static void main(String[] args) throws Exception {
-        // init SSLSocketFactory
+        // 初始化 SSLSocketFactory
         GMProvider provider = new GMProvider();
         SSLContext sc = SSLContext.getInstance("TLS", provider);
         sc.init(null, null, null);
@@ -50,7 +50,7 @@ public class Main {
         URL serverUrl = new URL("https://xxx/");
         HttpsURLConnection conn = (HttpsURLConnection) serverUrl.openConnection();
         conn.setRequestMethod("GET");
-        // set SSLSocketFactory
+        // 设置 SSLSocketFactory
         conn.setSSLSocketFactory(ssf);
         conn.connect();
         System.out.println("used cipher suite:");
@@ -59,13 +59,13 @@ public class Main {
 }
 ```
 
-## Issues
+## 问题
 [Opening an Issue](https://github.com/aliyun/alibabacloud-gm-jsse/issues/new), Issues not conforming to the guidelines may be closed immediately.
 
-## Changelog
-Detailed changes for each release are documented in the [release notes](./ChangeLog.txt).
+## 发行说明
+每个版本的详细更改记录在[发行说明](./ChangeLog.txt).
 
-## License
+## 许可证
 [Apache-2.0](http://www.apache.org/licenses/LICENSE-2.0)
 
 Copyright (c) 2009-present, Alibaba Cloud All rights reserved.

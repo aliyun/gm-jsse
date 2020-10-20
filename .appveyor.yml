@@ -1,0 +1,13 @@
+platform:
+  - x64
+skip_commits:
+  files:
+    - "*.yml"
+    - "*.rst"
+    - "LICENSE"
+
+build: off
+
+test_script:
+  - systeminfo
+  - mvn test -B -f .\pom.xml

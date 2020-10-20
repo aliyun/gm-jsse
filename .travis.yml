@@ -1,0 +1,19 @@
+
+language: java
+sudo: false # faster builds
+
+jdk:
+  - openjdk8
+  - openjdk12
+
+branches: # build only on these branches
+  only:
+    - master
+
+script:
+  # Test
+  - mvn test -B -f ./pom.xml
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
+
