@@ -9,9 +9,9 @@
 
 <p align="center">
 <a href="https://search.maven.org/search?q=g:%22com.aliyun%22%20AND%20a:%22gmsse%22"><img src="https://img.shields.io/maven-central/v/com.aliyun/gmsse.svg?label=Maven%20Central" alt="Latest Stable Version"/></a>
-<a href="https://travis-ci.org/aliyun/gmsse"><img src="https://travis-ci.org/aliyun/gmsse.svg?branch=master"/></a>
-<a href="https://codecov.io/gh/aliyun/gmsse"><img src="https://codecov.io/gh/aliyun/gmsse/branch/master/graph/badge.svg"/></a>
-<a href="https://ci.appveyor.com/project/aliyun/gmsse"><img src="https://ci.appveyor.com/api/projects/status/levg38kb55k0pn1v/branch/master?svg=true"/></a>
+<a href="https://travis-ci.org/aliyun/alibabacloud-gm-jsse"><img src="https://travis-ci.org/aliyun/alibabacloud-gm-jsse.svg?branch=master"/></a>
+<a href="https://ci.appveyor.com/project/aliyun/alibabacloud-gm-jsse"><img src="https://ci.appveyor.com/api/projects/status/levg38kb55k0pn1v/branch/master?svg=true"/></a>
+<a href="https://codecov.io/gh/aliyun/alibabacloud-gm-jsse"><img src="https://codecov.io/gh/aliyun/alibabacloud-gm-jsse/branch/master/graph/badge.svg"/></a>
 </p>
 
 ## 环境要求
