@@ -1,13 +1,11 @@
 package com.aliyun;
 
-import com.aliyun.record.ChangeCipherSpec;
-import com.aliyun.record.Handshake;
+import com.aliyun.gmsse.Record;
+import com.aliyun.gmsse.record.ChangeCipherSpec;
+import com.aliyun.gmsse.record.Handshake;
 import org.junit.Assert;
 import org.junit.Test;
-import com.aliyun.Record.*;
-import org.mockito.Mockito;
-
-import java.io.*;
+import com.aliyun.gmsse.Record.*;
 
 public class RecordTest {
 
