@@ -4,8 +4,7 @@ import com.aliyun.gmsse.ProtocolVersion;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
+import java.lang.reflect.Method;
 
 public class ProtocolVersionTest {
 
@@ -32,9 +31,10 @@ public class ProtocolVersionTest {
 
     @Test
     public void readTest() throws Exception {
-        InputStream inputStream = new ByteArrayInputStream(new byte[]{1, 1});
-        ProtocolVersion protocolVersion = ProtocolVersion.read(inputStream);
-        byte[] bytes = protocolVersion.getEncoded();
+        ProtocolVersion protocolVersion = ProtocolVersion.getInstance(1, 1);
+        Method getEncoded = ProtocolVersion.class.getDeclaredMethod("getEncoded");
+        getEncoded.setAccessible(true);
+        byte[] bytes = (byte[]) getEncoded.invoke(protocolVersion);
         Assert.assertEquals(1, bytes[0]);
         Assert.assertEquals(1, bytes[1]);
     }

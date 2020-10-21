@@ -2,14 +2,17 @@ package com.aliyun;
 
 import com.aliyun.gmsse.*;
 import com.aliyun.gmsse.crypto.Crypto;
+import com.aliyun.gmsse.handshake.*;
 import com.aliyun.gmsse.record.AppDataOutputStream;
 import com.aliyun.gmsse.record.Handshake;
+import org.bouncycastle.crypto.engines.SM4Engine;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.powermock.api.mockito.PowerMockito;
+import org.powermock.core.classloader.annotations.PowerMockIgnore;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
@@ -27,6 +30,7 @@ import java.util.List;
 
 
 @RunWith(PowerMockRunner.class)
+@PowerMockIgnore("javax.security.auth.*")
 @PrepareForTest({Certificate.class, Handshake.class, ClientKeyExchange.class, Record.class, Crypto.class})
 public class GMSSLSocketTest {
     @Test
@@ -118,7 +122,10 @@ public class GMSSLSocketTest {
 
         strings = new String[] { "NTLSv1.1", "NTLSv1.1" };
         sslSocket.setEnabledProtocols(strings);
-        Assert.assertEquals(sslSocket.session.enabledProtocols.get(0), ProtocolVersion.NTLS_1_1);
+        Field session = sslSocket.getClass().getDeclaredField("session");
+        session.setAccessible(true);
+        GMSSLSession gmsslSession = (GMSSLSession) session.get(sslSocket);
+        Assert.assertEquals(gmsslSession.enabledProtocols.get(0), ProtocolVersion.NTLS_1_1);
         sslSocket.close();
     }
 
@@ -151,7 +158,10 @@ public class GMSSLSocketTest {
 
         strings = new String[] { "ECC-SM2-WITH-SM4-SM3", "ECC-SM2-WITH-SM4-SM3" };
         sslSocket.setEnabledCipherSuites(strings);
-        Assert.assertEquals(CipherSuite.NTLS_SM2_WITH_SM4_SM3, sslSocket.session.enabledSuites.get(0));
+        Field session = sslSocket.getClass().getDeclaredField("session");
+        session.setAccessible(true);
+        GMSSLSession gmsslSession = (GMSSLSession) session.get(sslSocket);
+        Assert.assertEquals(CipherSuite.NTLS_SM2_WITH_SM4_SM3, gmsslSession.enabledSuites.get(0));
         sslSocket.close();
     }
 
@@ -203,10 +213,13 @@ public class GMSSLSocketTest {
 
         PowerMockito.mockStatic(Certificate.class);
         Certificate certificate = Mockito.mock(Certificate.class);
-        PowerMockito.when(Certificate.read(Mockito.any())).thenReturn(certificate);
+        PowerMockito.when(Certificate.read(Mockito.any(InputStream.class))).thenReturn(certificate);
 
         receiveServerCertificate.invoke(gmsslSocket);
-        Assert.assertEquals(1, gmsslSocket.handshakes.size());
+        Field handshakes = gmsslSocket.getClass().getDeclaredField("handshakes");
+        handshakes.setAccessible(true);
+        List<Handshake> list = (List<Handshake>) handshakes.get(gmsslSocket);
+        Assert.assertEquals(1, list.size());
     }
 
     @Test
@@ -227,25 +240,37 @@ public class GMSSLSocketTest {
         Mockito.when(serverKeyExchange.verify(Mockito.any(PublicKey.class), Mockito.any(byte[].class),
                 Mockito.any(byte[].class), Mockito.any(X509Certificate.class))).thenReturn(true);
         Handshake skef = new Handshake(null, serverKeyExchange);
-        PowerMockito.when(Handshake.read(Mockito.any())).thenReturn(skef);
-
+        PowerMockito.when(Handshake.read(Mockito.any(InputStream.class))).thenReturn(skef);
         X509Certificate first = Mockito.mock(X509Certificate.class);
-        Mockito.when(first.getPublicKey()).thenReturn(null);
+        PowerMockito.when(first.getPublicKey()).thenReturn(Mockito.mock(PublicKey.class));
         X509Certificate two = Mockito.mock(X509Certificate.class);
         GMSSLSession gmsslSession = new GMSSLSession(null, null);
         gmsslSession.peerCerts = new X509Certificate[2];
         gmsslSession.peerCerts[0] = first;
         gmsslSession.peerCerts[1] = two;
-        gmsslSocket.session = gmsslSession;
+        Field session = gmsslSocket.getClass().getDeclaredField("session");
+        session.setAccessible(true);
+        session.set(gmsslSocket, gmsslSession);
+
+        byte[] bytes = new byte[]{1};
+        SecurityParameters securityParameters = new SecurityParameters();
+        securityParameters.serverRandom = bytes;
+        securityParameters.clientRandom = bytes;
+        Field securityParametersField = GMSSLSocket.class.getDeclaredField("securityParameters");
+        securityParametersField.setAccessible(true);
+        securityParametersField.set(gmsslSocket, securityParameters);
 
         receiveServerKeyExchange.invoke(gmsslSocket);
-        Assert.assertEquals(1, gmsslSocket.handshakes.size());
+        Field handshakes = gmsslSocket.getClass().getDeclaredField("handshakes");
+        handshakes.setAccessible(true);
+        List<Handshake> list = (List<Handshake>) handshakes.get(gmsslSocket);
+        Assert.assertEquals(1, list.size());
 
         serverKeyExchange = Mockito.mock(ServerKeyExchange.class);
         Mockito.when(serverKeyExchange.verify(Mockito.any(PublicKey.class), Mockito.any(byte[].class),
                 Mockito.any(byte[].class), Mockito.any(X509Certificate.class))).thenThrow(new InvalidKeyException("test"));
         skef = new Handshake(null, serverKeyExchange);
-        PowerMockito.when(Handshake.read(Mockito.any())).thenReturn(skef);
+        PowerMockito.when(Handshake.read(Mockito.any(InputStream.class))).thenReturn(skef);
 
         try {
             receiveServerKeyExchange.invoke(gmsslSocket);
@@ -258,7 +283,7 @@ public class GMSSLSocketTest {
         Mockito.when(serverKeyExchange.verify(Mockito.any(PublicKey.class), Mockito.any(byte[].class),
                 Mockito.any(byte[].class), Mockito.any(X509Certificate.class))).thenReturn(false);
         skef = new Handshake(null, serverKeyExchange);
-        PowerMockito.when(Handshake.read(Mockito.any())).thenReturn(skef);
+        PowerMockito.when(Handshake.read(Mockito.any(InputStream.class))).thenReturn(skef);
 
         try {
             receiveServerKeyExchange.invoke(gmsslSocket);
@@ -279,7 +304,9 @@ public class GMSSLSocketTest {
         SecureRandom secureRandom = Mockito.mock(SecureRandom.class);
         Mockito.when(secureRandom.generateSeed(46)).thenReturn(bytes);
         gmsslSession.random = secureRandom;
-        gmsslSocket.session = gmsslSession;
+        Field session = gmsslSocket.getClass().getDeclaredField("session");
+        session.setAccessible(true);
+        session.set(gmsslSocket, gmsslSession);
 
         byte[] keyBlock = new byte[200];
         PowerMockito.mockStatic(Crypto.class);
@@ -305,12 +332,12 @@ public class GMSSLSocketTest {
         recordStreamField.set(gmsslSocket, recordStream);
 
         sendClientKeyExchange.invoke(gmsslSocket);
-        Mockito.verify(recordStream, Mockito.times(1)).setClientMacKey(Mockito.any());
-        Mockito.verify(recordStream, Mockito.times(1)).setServerMacKey(Mockito.any());
-        Mockito.verify(recordStream, Mockito.times(1)).setWriteCipher(Mockito.any());
-        Mockito.verify(recordStream, Mockito.times(1)).setReadCipher(Mockito.any());
-        Mockito.verify(recordStream, Mockito.times(1)).setClientWriteIV(Mockito.any());
-        Mockito.verify(recordStream, Mockito.times(1)).setServerWriteIV(Mockito.any());
+        Mockito.verify(recordStream, Mockito.times(1)).setClientMacKey(Mockito.any(byte[].class));
+        Mockito.verify(recordStream, Mockito.times(1)).setServerMacKey(Mockito.any(byte[].class));
+        Mockito.verify(recordStream, Mockito.times(1)).setWriteCipher(Mockito.any(SM4Engine.class));
+        Mockito.verify(recordStream, Mockito.times(1)).setReadCipher(Mockito.any(SM4Engine.class));
+        Mockito.verify(recordStream, Mockito.times(1)).setClientWriteIV(Mockito.any(byte[].class));
+        Mockito.verify(recordStream, Mockito.times(1)).setServerWriteIV(Mockito.any(byte[].class));
     }
 
     @Test
@@ -330,7 +357,7 @@ public class GMSSLSocketTest {
         Finished finished = Mockito.mock(Finished.class);
         Mockito.when(finished.getBytes()).thenReturn(new byte[]{1});
         Handshake handshake = new Handshake(null, finished);
-        PowerMockito.when(Handshake.read(Mockito.any())).thenReturn(handshake);
+        PowerMockito.when(Handshake.read(Mockito.any(InputStream.class))).thenReturn(handshake);
 
         byte[] keyBlock = new byte[2];
         PowerMockito.mockStatic(Crypto.class);
@@ -364,7 +391,11 @@ public class GMSSLSocketTest {
         recordStreamField.set(gmsslSocket, recordStream);
 
         sendFinished.invoke(gmsslSocket);
-        Assert.assertEquals(1, gmsslSocket.handshakes.size());
+        Field handshakes = gmsslSocket.getClass().getDeclaredField("handshakes");
+        handshakes.setAccessible(true);
+        List<Handshake> list = (List<Handshake>) handshakes.get(gmsslSocket);
+        Assert.assertEquals(1, list.size());
+        Assert.assertTrue(list.get(0).body instanceof Finished);
     }
 
     @Test
@@ -381,7 +412,10 @@ public class GMSSLSocketTest {
         recordStreamField.set(gmsslSocket, recordStream);
 
         receiveServerHelloDone.invoke(gmsslSocket);
-        Assert.assertTrue(gmsslSocket.handshakes.get(0).body instanceof ServerHello);
+        Field handshakes = gmsslSocket.getClass().getDeclaredField("handshakes");
+        handshakes.setAccessible(true);
+        List<Handshake> list = (List<Handshake>) handshakes.get(gmsslSocket);
+        Assert.assertTrue(list.get(0).body instanceof ServerHello);
     }
 
     @Test
