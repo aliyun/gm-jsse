@@ -9,9 +9,10 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import java.io.*;
+import java.lang.reflect.Field;
 
 public class RecordStreamTest {
-    private String path = RecordStreamTest.class.getClassLoader().getResource("TestFile").getPath();
+    private String path = this.getClass().getClassLoader().getResource("TestFile").getPath();
 
     @Test
     public void writeTest() throws Exception {
@@ -68,8 +69,13 @@ public class RecordStreamTest {
         recordStream.setWriteCipher(sm4Engine);
         Record record = new Record(Record.ContentType.ALERT, ProtocolVersion.NTLS_1_1, "test".getBytes("UTF-8"));
         record = recordStream.encrypt(record);
-        Assert.assertEquals(record.contentType, Record.ContentType.ALERT);
-        Assert.assertEquals(record.version, ProtocolVersion.NTLS_1_1);
+
+        Field contentType = Record.class.getDeclaredField("contentType");
+        contentType.setAccessible(true);
+        Field version = Record.class.getDeclaredField("version");
+        version.setAccessible(true);
+        Assert.assertEquals(contentType.get(record), Record.ContentType.ALERT);
+        Assert.assertEquals(version.get(record), ProtocolVersion.NTLS_1_1);
         Assert.assertEquals(112, record.fragment.length);
     }
 

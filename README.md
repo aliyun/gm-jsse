@@ -15,7 +15,7 @@ English | [简体中文](./README-CN.md)
 
 ## Requirements
 
-- The Alibaba Cloud Java SDK requires JDK 1.6 or later.
+- The Alibaba Cloud Java SDK requires JDK 1.7 or later.
 
 ## Installation
 

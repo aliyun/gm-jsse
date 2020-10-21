@@ -1,20 +1,15 @@
 package com.aliyun.gmsse.handshake;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.security.SecureRandom;
-import java.security.cert.X509Certificate;
-
 import com.aliyun.gmsse.ProtocolVersion;
 import com.aliyun.gmsse.Util;
 import com.aliyun.gmsse.crypto.Crypto;
 import com.aliyun.gmsse.record.Handshake;
 import com.aliyun.gmsse.record.Handshake.Body;
-
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
+
+import java.io.*;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
 
 public class ClientKeyExchange extends Handshake.Body {
 
@@ -32,9 +27,7 @@ public class ClientKeyExchange extends Handshake.Body {
             this.encryptedPreMasterSecret = Crypto.encrypt((BCECPublicKey) certificate.getPublicKey(),
                     this.preMasterSecret);
         } catch (Exception ex) {
-            RuntimeException re = new RuntimeException(ex.getMessage());
-            re.initCause(ex);
-            throw re;
+            throw new RuntimeException(ex.getMessage(), ex);
         }
     }
 
@@ -67,11 +60,6 @@ public class ClientKeyExchange extends Handshake.Body {
         return preMasterSecret;
     }
 
-    // // P_SM3(secret，label+ sed)
-    // byte[] result = new byte[length];
-    // hmacHash(digest, data, 0, data.length, labelSeed, result);
-    // return result;
-
     public byte[] getMasterSecret(byte[] clientRandom, byte[] serverRandom) throws IOException {
         byte[] MASTER_SECRET = "master secret".getBytes();
         ByteArrayOutputStream os = new ByteArrayOutputStream();
@@ -81,9 +69,7 @@ public class ClientKeyExchange extends Handshake.Body {
         try {
             return Crypto.prf(preMasterSecret, MASTER_SECRET, seed, preMasterSecret.length);
         } catch (Exception ex) {
-            RuntimeException re = new RuntimeException(ex.getMessage());
-            re.initCause(ex);
-            throw re;
+            throw new RuntimeException(ex.getMessage(), ex);
         }
     }
 }
