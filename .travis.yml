@@ -9,6 +9,9 @@ branches: # build only on these branches
   only:
     - master
 
+install:
+  - mvn clean
+
 script:
   # Test
   - mvn test -B -f ./pom.xml
