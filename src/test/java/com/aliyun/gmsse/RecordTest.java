@@ -1,6 +1,5 @@
-package com.aliyun;
+package com.aliyun.gmsse;
 
-import com.aliyun.gmsse.Record;
 import com.aliyun.gmsse.Record.ContentType;
 import org.junit.Assert;
 import org.junit.Test;

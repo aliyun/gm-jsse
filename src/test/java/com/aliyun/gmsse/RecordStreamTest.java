@@ -1,8 +1,5 @@
-package com.aliyun;
+package com.aliyun.gmsse;
 
-import com.aliyun.gmsse.ProtocolVersion;
-import com.aliyun.gmsse.Record;
-import com.aliyun.gmsse.RecordStream;
 import org.bouncycastle.crypto.engines.SM4Engine;
 import org.junit.Assert;
 import org.junit.Test;

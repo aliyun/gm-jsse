@@ -1,7 +1,5 @@
-package com.aliyun;
+package com.aliyun.gmsse;
 
-import com.aliyun.gmsse.GMSSLContextSpi;
-import com.aliyun.gmsse.GMSSLSocketFactory;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;

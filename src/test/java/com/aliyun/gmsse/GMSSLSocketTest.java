@@ -1,6 +1,5 @@
-package com.aliyun;
+package com.aliyun.gmsse;
 
-import com.aliyun.gmsse.*;
 import com.aliyun.gmsse.crypto.Crypto;
 import com.aliyun.gmsse.handshake.*;
 import com.aliyun.gmsse.record.AppDataOutputStream;
