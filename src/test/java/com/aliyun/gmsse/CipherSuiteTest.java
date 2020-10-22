@@ -1,7 +1,5 @@
-package com.aliyun;
+package com.aliyun.gmsse;
 
-import com.aliyun.gmsse.CipherSuite;
-import com.aliyun.gmsse.ProtocolVersion;
 import org.junit.Assert;
 import org.junit.Test;
 
