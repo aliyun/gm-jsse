@@ -32,6 +32,7 @@ import java.util.List;
 @PowerMockIgnore("javax.security.auth.*")
 @PrepareForTest({Certificate.class, Handshake.class, ClientKeyExchange.class, Record.class, Crypto.class})
 public class GMSSLSocketTest {
+
     @Test
     public void getEnabledCipherSuitesTest() throws Exception {
         GMSSLSocket sslSocket = new GMSSLSocket("www.aliyun.com", 80);

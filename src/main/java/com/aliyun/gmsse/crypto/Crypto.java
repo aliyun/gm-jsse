@@ -1,6 +1,5 @@
 package com.aliyun.gmsse.crypto;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -10,7 +9,6 @@ import javax.crypto.ShortBufferException;
 
 import org.bouncycastle.asn1.ASN1EncodableVector;
 import org.bouncycastle.asn1.ASN1Integer;
-import org.bouncycastle.asn1.ASN1OutputStream;
 import org.bouncycastle.asn1.DEROctetString;
 import org.bouncycastle.asn1.DERSequence;
 import org.bouncycastle.asn1.gm.GMNamedCurves;
@@ -60,27 +58,20 @@ public class Crypto {
     }
 
     public static byte[] encode(byte[] c1x, byte[] c1y, byte[] c3, byte[] c2) throws IOException {
-        ASN1Integer x = new ASN1Integer(c1x);
-        ASN1Integer y = new ASN1Integer(c1y);
-        DEROctetString derDig = new DEROctetString(c3);
-        DEROctetString derEnc = new DEROctetString(c2);
         ASN1EncodableVector v = new ASN1EncodableVector();
-        v.add(x);
-        v.add(y);
-        v.add(derDig);
-        v.add(derEnc);
+        v.add(new ASN1Integer(c1x));
+        v.add(new ASN1Integer(c1y));
+        v.add(new DEROctetString(c3));
+        v.add(new DEROctetString(c2));
         DERSequence seq = new DERSequence(v);
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        ASN1OutputStream dos = ASN1OutputStream.create(bos);
-        dos.writeObject(seq);
-        return bos.toByteArray();
+        return seq.getEncoded();
     }
 
-    private static byte[] join(byte[] a, byte[] b) throws IOException {
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        os.write(a);
-        os.write(b);
-        return os.toByteArray();
+    private static byte[] join(byte[] a, byte[] b) {
+        byte[] out = new byte[a.length + b.length];
+        System.arraycopy(a, 0, out, 0, a.length);
+        System.arraycopy(b, 0, out, a.length, b.length);
+        return out;
     }
 
     private static void hmacHash(byte[] secret, byte[] seed, byte[] output)
