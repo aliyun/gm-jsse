@@ -6,7 +6,7 @@
     <version>1.0.0</version>
     <name>GMSSE</name>
 
-    <url>http://maven.apache.org</url>
+    <url>https://github.com/aliyun/gm-jsse</url>
     <description>Aliyun GMSSE for Java
 
         Copyright (C) Alibaba Cloud Computing
@@ -36,9 +36,9 @@
     </licenses>
 
     <scm>
-        <connection>scm:git:git://github.com/aliyun/alibabacloud-gm-jsse.git</connection>
-        <developerConnection>scm:git:git@github.com:aliyun/alibabacloud-gm-jsse.git</developerConnection>
-        <url>https://github.com/aliyun/alibabacloud-gm-jsse</url>
+        <connection>scm:git:git://github.com/aliyun/gm-jsse.git</connection>
+        <developerConnection>scm:git:git@github.com:aliyun/gm-jsse.git</developerConnection>
+        <url>https://github.com/aliyun/gm-jsse</url>
     </scm>
 
     <developers>
