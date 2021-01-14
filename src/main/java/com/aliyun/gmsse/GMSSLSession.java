@@ -103,8 +103,7 @@ public class GMSSLSession implements SSLSession {
 
     @Override
     public Certificate[] getPeerCertificates() throws SSLPeerUnverifiedException {
-        // TODO Auto-generated method stub
-        return null;
+        return peerCerts;
     }
 
     @Override
