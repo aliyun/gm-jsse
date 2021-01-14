@@ -18,6 +18,7 @@ public class GMSSLSession implements SSLSession {
     SessionContext sessionContext;
     ID sessionId;
     public String peerHost;
+	public int peerPort;
     public KeyManager keyManager;
     public TrustManager trustManager;
     public SecureRandom random;
@@ -74,14 +75,12 @@ public class GMSSLSession implements SSLSession {
 
     @Override
     public String getPeerHost() {
-        // TODO Auto-generated method stub
-        return null;
+        return peerHost;
     }
 
     @Override
     public int getPeerPort() {
-        // TODO Auto-generated method stub
-        return 0;
+        return peerPort;
     }
 
     @Override
