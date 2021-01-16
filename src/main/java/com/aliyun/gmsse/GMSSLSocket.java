@@ -417,6 +417,7 @@ public class GMSSLSocket extends SSLSocket {
         // TODO: process the compresion method
         session.cipherSuite = sh.getCipherSuite();
         session.peerHost = remoteHost;
+        session.peerPort = port;
         session.sessionId = new GMSSLSession.ID(sh.getSessionId());
         handshakes.add(hsf);
         securityParameters.serverRandom = sh.getRandom();
