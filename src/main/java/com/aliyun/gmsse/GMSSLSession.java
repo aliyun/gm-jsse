@@ -18,15 +18,17 @@ public class GMSSLSession implements SSLSession {
     SessionContext sessionContext;
     ID sessionId;
     public String peerHost;
-	public int peerPort;
-    public KeyManager keyManager;
-    public TrustManager trustManager;
+    public int peerPort;
+    public X509KeyManager keyManager;
+    public X509TrustManager trustManager;
     public SecureRandom random;
+    public boolean peerVerified;
 
     public GMSSLSession(List<CipherSuite> enabledSuites, List<ProtocolVersion> enabledProtocols) {
         this.creationTime = System.currentTimeMillis();
         this.enabledSuites = enabledSuites;
         this.enabledProtocols = enabledProtocols;
+        this.peerVerified = false;
     }
 
     @Override
@@ -95,12 +97,6 @@ public class GMSSLSession implements SSLSession {
     }
 
     @Override
-    public javax.security.cert.X509Certificate[] getPeerCertificateChain() throws SSLPeerUnverifiedException {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
     public Certificate[] getPeerCertificates() throws SSLPeerUnverifiedException {
         return peerCerts;
     }
@@ -156,5 +152,11 @@ public class GMSSLSession implements SSLSession {
         public byte[] getId() {
             return id.clone();
         }
+    }
+
+    @Override
+    public javax.security.cert.X509Certificate[] getPeerCertificateChain() throws SSLPeerUnverifiedException {
+        // TODO Auto-generated method stub
+        return null;
     }
 }

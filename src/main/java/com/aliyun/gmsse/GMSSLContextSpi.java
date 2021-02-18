@@ -1,6 +1,9 @@
 package com.aliyun.gmsse;
 
 import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 
 import javax.net.ssl.KeyManager;
@@ -10,13 +13,14 @@ import javax.net.ssl.SSLServerSocketFactory;
 import javax.net.ssl.SSLSessionContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 
 public class GMSSLContextSpi extends SSLContextSpi {
 
-    private KeyManager keyManager;
-    private TrustManager trustManager;
+    private X509KeyManager keyManager;
+    private X509TrustManager trustManager;
     private SecureRandom random;
     private SSLSessionContext clientSessionContext;
 
@@ -77,6 +81,10 @@ public class GMSSLContextSpi extends SSLContextSpi {
             }
         }
 
+        if (trustManager == null) {
+            trustManager = defaultTrustManager();
+        }
+
         if (sr != null) {
             this.random = sr;
         } else {
@@ -84,4 +92,15 @@ public class GMSSLContextSpi extends SSLContextSpi {
         }
     }
 
+    private X509TrustManager defaultTrustManager() throws KeyManagementException {
+        try {
+            TrustManagerFactory fact = TrustManagerFactory.getInstance("X509", new GMProvider());
+            fact.init((KeyStore) null);
+            return (X509TrustManager) fact.getTrustManagers()[0];
+        } catch (NoSuchAlgorithmException nsae) {
+            throw new KeyManagementException(nsae.toString());
+        } catch (KeyStoreException e) {
+            throw new KeyManagementException(e.toString());
+        }
+    }
 }

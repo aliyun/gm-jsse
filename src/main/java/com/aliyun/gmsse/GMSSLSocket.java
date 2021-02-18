@@ -32,6 +32,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -264,7 +265,7 @@ public class GMSSLSocket extends SSLSocket {
     private void receiveFinished() throws IOException {
         Record rc = recordStream.read(true);
         Handshake hs = Handshake.read(new ByteArrayInputStream(rc.fragment));
-        Finished finished = (Finished)hs.body;
+        Finished finished = (Finished) hs.body;
         Finished serverFinished = new Finished(securityParameters.masterSecret, "server finished", handshakes);
         if (!Arrays.equals(finished.getBytes(), serverFinished.getBytes())) {
             Alert alert = new Alert(Alert.Level.FATAL, Alert.Description.HANDSHAKE_FAILURE);
@@ -400,7 +401,14 @@ public class GMSSLSocket extends SSLSocket {
         Record rc = recordStream.read();
         Handshake cf = Handshake.read(new ByteArrayInputStream(rc.fragment));
         Certificate cert = (Certificate) cf.body;
-        session.peerCerts = cert.getCertificates();
+        X509Certificate[] peerCerts = cert.getCertificates();
+        try {
+            session.trustManager.checkServerTrusted(peerCerts, session.cipherSuite.getAuthType());
+        } catch (CertificateException e) {
+            throw new SSLException("could not verify peer certificate!", e);
+        }
+        session.peerCerts = peerCerts;
+        session.peerVerified = true;
         handshakes.add(cf);
     }
 

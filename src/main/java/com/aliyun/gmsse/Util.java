@@ -4,6 +4,8 @@ import java.io.ByteArrayInputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 
 public class Util {
     private static String HEX = "0123456789abcdef";
@@ -43,5 +45,13 @@ public class Util {
             count += l;
         }
         return buf;
+    }
+
+    static String getProperty(final String name) {
+        return AccessController.doPrivileged(new PrivilegedAction<String>() {
+            public String run() {
+                return System.getProperty(name);
+            }
+        });
     }
 }

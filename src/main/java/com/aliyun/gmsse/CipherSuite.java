@@ -62,4 +62,8 @@ final public class CipherSuite {
     public String getSignature() {
         return sigName;
     }
+
+    public String getAuthType() {
+        return kexName + "_" + sigName;
+    }
 }
