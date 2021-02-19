@@ -20,8 +20,6 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactorySpi;
 import javax.net.ssl.X509TrustManager;
 
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-
 public class GMX509TrustManagerFactory extends TrustManagerFactorySpi {
     /**
      * The location of the system key store, containing the CA certs.
@@ -71,7 +69,6 @@ public class GMX509TrustManagerFactory extends TrustManagerFactorySpi {
         Enumeration<String> aliases = store.aliases();
         while (aliases.hasMoreElements()) {
             String alias = (String) aliases.nextElement();
-            System.out.println("aliases: " + alias);
             if (!store.isCertificateEntry(alias))
                 continue;
             Certificate c = store.getCertificate(alias);
