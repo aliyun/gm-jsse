@@ -54,6 +54,24 @@ public class Main {
 }
 ```
 
+在新的版本中，GM-JSSE 增加了对服务端证书和 CA 证书的校验，如果 CA 根证书没有导入在系统中，可能会遇到校验错误。这时，你需要通过传递信任管理器的形式来传入 CA 证书。
+
+```
+    BouncyCastleProvider bc = new BouncyCastleProvider();
+    KeyStore ks = KeyStore.getInstance("JKS");
+    CertificateFactory cf = CertificateFactory.getInstance("X.509", bc);
+    FileInputStream is = new FileInputStream("/path/to/ca_cert");
+    X509Certificate cert = (X509Certificate) cf.generateCertificate(is);
+    ks.load(null, null);
+    ks.setCertificateEntry("gmca", cert);
+
+    TrustManagerFactory tmf = TrustManagerFactory.getInstance("X509", provider);
+    tmf.init(ks);
+
+    sc.init(null, tmf.getTrustManagers(), null);
+    SSLSocketFactory ssf = sc.getSocketFactory();
+```
+
 ## 问题
 [Opening an Issue](https://github.com/aliyun/gm-jsse/issues/new), Issues not conforming to the guidelines may be closed immediately.
 

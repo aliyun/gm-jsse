@@ -54,6 +54,24 @@ public class Main {
 }
 ```
 
+In the new version, GM-JSSE will verify server and CA certificates, if the CA root certificates are not imported in system, maybe have verfication errors. So you need add trust manager with CA certificates.
+
+```
+    BouncyCastleProvider bc = new BouncyCastleProvider();
+    KeyStore ks = KeyStore.getInstance("JKS");
+    CertificateFactory cf = CertificateFactory.getInstance("X.509", bc);
+    FileInputStream is = new FileInputStream("/path/to/ca_cert");
+    X509Certificate cert = (X509Certificate) cf.generateCertificate(is);
+    ks.load(null, null);
+    ks.setCertificateEntry("gmca", cert);
+
+    TrustManagerFactory tmf = TrustManagerFactory.getInstance("X509", provider);
+    tmf.init(ks);
+
+    sc.init(null, tmf.getTrustManagers(), null);
+    SSLSocketFactory ssf = sc.getSocketFactory();
+```
+
 ## Issues
 [Opening an Issue](https://github.com/aliyun/gm-jsse/issues/new), Issues not conforming to the guidelines may be closed immediately.
 
