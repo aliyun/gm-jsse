@@ -290,4 +290,12 @@ public class RecordStream {
         }
     }
 
+    public OutputStream getOutputStream() {
+        return output;
+    }
+
+    public InputStream getInputStream() {
+        return input;
+    }
+
 }
