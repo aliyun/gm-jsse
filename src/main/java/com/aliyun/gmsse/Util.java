@@ -47,7 +47,7 @@ public class Util {
         return buf;
     }
 
-    static String getProperty(final String name) {
+    public static String getProperty(final String name) {
         return AccessController.doPrivileged(new PrivilegedAction<String>() {
             public String run() {
                 return System.getProperty(name);
