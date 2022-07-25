@@ -37,13 +37,14 @@ import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * GMSSLSocket
  */
 public class GMSSLSocket extends SSLSocket {
-    static List<CipherSuite> supportedSuites = new ArrayList<CipherSuite>();
-    static List<ProtocolVersion> supportedPtrotocols = new ArrayList<ProtocolVersion>();
+    static List<CipherSuite> supportedSuites = new CopyOnWriteArrayList<CipherSuite>();
+    static List<ProtocolVersion> supportedPtrotocols = new CopyOnWriteArrayList<ProtocolVersion>();
 
     static {
         // setup suites
