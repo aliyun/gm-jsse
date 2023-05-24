@@ -42,35 +42,35 @@ public class HandshakeTest {
     public void readTest() throws Exception {
         InputStream inputStream = new ByteArrayInputStream(new byte[]{0x01});
         Handshake handshake = Handshake.read(inputStream);
-        Assert.assertEquals(1, handshake.type.getValue());
+        Assert.assertEquals(Handshake.Type.CLIENT_HELLO, handshake.type);
 
         inputStream = new ByteArrayInputStream(new byte[]{0x02});
         handshake = Handshake.read(inputStream);
-        Assert.assertEquals(2, handshake.type.getValue());
+        Assert.assertEquals(Handshake.Type.SERVER_HELLO, handshake.type);
 
         inputStream = new ByteArrayInputStream(new byte[]{0x0c});
         handshake = Handshake.read(inputStream);
-        Assert.assertEquals(12, handshake.type.getValue());
+        Assert.assertEquals(Handshake.Type.SERVER_KEY_EXCHANGE, handshake.type);
 
-        inputStream = new ByteArrayInputStream(new byte[]{0x0d});
+        inputStream = new ByteArrayInputStream(new byte[]{0x0d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00});
         handshake = Handshake.read(inputStream);
-        Assert.assertEquals(13, handshake.type.getValue());
+        Assert.assertEquals(Handshake.Type.CERTIFICATE_REQUEST, handshake.type);
 
         inputStream = new ByteArrayInputStream(new byte[]{0x0e});
         handshake = Handshake.read(inputStream);
-        Assert.assertEquals(14, handshake.type.getValue());
+        Assert.assertEquals(Handshake.Type.SERVER_HELLO_DONE, handshake.type);
 
         inputStream = new ByteArrayInputStream(new byte[]{0x0f});
         handshake = Handshake.read(inputStream);
-        Assert.assertEquals(15, handshake.type.getValue());
+        Assert.assertEquals(Handshake.Type.CERTIFICATE_VERIFY, handshake.type);
 
         inputStream = new ByteArrayInputStream(new byte[]{0x10});
         handshake = Handshake.read(inputStream);
-        Assert.assertEquals(16, handshake.type.getValue());
+        Assert.assertEquals(Handshake.Type.CLIENT_KEY_EXCHANGE, handshake.type);
 
         inputStream = new ByteArrayInputStream(new byte[]{0x14, 0x00, 0x00, 0x00});
         handshake = Handshake.read(inputStream);
-        Assert.assertEquals(20, handshake.type.getValue());
+        Assert.assertEquals(Handshake.Type.FINISHED, handshake.type);
 
         inputStream = new ByteArrayInputStream(new byte[]{66});
         handshake = Handshake.read(inputStream);

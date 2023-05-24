@@ -29,6 +29,7 @@ public class GMSSLSocket extends SSLSocket {
     public SSLSessionContext sessionContext;
     private String remoteHost;
     private boolean clientMode;
+    private boolean needAuthClient = false;
     private Socket underlyingSocket;
     private boolean autoClose;
     private boolean isConnected = false;
@@ -121,7 +122,7 @@ public class GMSSLSocket extends SSLSocket {
 
     @Override
     public boolean getNeedClientAuth() {
-        return false;
+        return (connection.sslConfig.clientAuthType == ClientAuthType.CLIENT_AUTH_REQUIRED);
     }
 
     @Override
@@ -146,7 +147,7 @@ public class GMSSLSocket extends SSLSocket {
 
     @Override
     public boolean getWantClientAuth() {
-        return false;
+        return (connection.sslConfig.clientAuthType == ClientAuthType.CLIENT_AUTH_REQUESTED);
     }
 
     @Override
@@ -198,6 +199,7 @@ public class GMSSLSocket extends SSLSocket {
 
     @Override
     public void setNeedClientAuth(boolean need) {
+        connection.sslConfig.clientAuthType = (need ? ClientAuthType.CLIENT_AUTH_REQUIRED : ClientAuthType.CLIENT_AUTH_NONE);
     }
 
     @Override
