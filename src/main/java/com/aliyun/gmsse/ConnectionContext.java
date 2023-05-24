@@ -20,6 +20,7 @@ import com.aliyun.gmsse.record.Handshake;
 import com.aliyun.gmsse.Record.ContentType;
 import com.aliyun.gmsse.crypto.Crypto;
 import com.aliyun.gmsse.handshake.Certificate;
+import com.aliyun.gmsse.handshake.CertificateVerify;
 import com.aliyun.gmsse.handshake.ClientKeyExchange;
 import com.aliyun.gmsse.handshake.Finished;
 import com.aliyun.gmsse.handshake.ServerHello;
@@ -65,7 +66,7 @@ public class ConnectionContext {
         // recive ServerKeyExchange
         receiveServerKeyExchange();
 
-        // recive ServerHelloDone
+        // recive ServerHello
         receiveServerHelloDone();
 
         // send ClientKeyExchange
@@ -115,6 +116,15 @@ public class ConnectionContext {
         ProtocolVersion version = ProtocolVersion.NTLS_1_1;
         Record rc = new Record(ContentType.CHANGE_CIPHER_SPEC, version, new ChangeCipherSpec().getBytes());
         socket.recordStream.write(rc);
+    }
+
+    private void sendCertificateVerify(List<Handshake> handshakes) throws IOException {
+        ProtocolVersion version = ProtocolVersion.NTLS_1_1;
+        CertificateVerify cv = new CertificateVerify(handshakes);
+        Handshake hs = new Handshake(Handshake.Type.CERTIFICATE_VERIFY, cv);
+        Record rc = new Record(ContentType.HANDSHAKE, version, hs.getBytes());
+        socket.recordStream.write(rc);
+        handshakes.add(hs);
     }
 
     private void sendClientKeyExchange() throws IOException {
@@ -189,6 +199,15 @@ public class ConnectionContext {
         socket.recordStream.setServerWriteIV(serverWriteIV);
     }
 
+    private void sendClientCertificate() throws IOException {
+        ProtocolVersion version = ProtocolVersion.NTLS_1_1;
+        X509Certificate[] certs = session.keyManager.getCertificateChain(socket.getPeerHost());
+        Certificate cert = new Certificate(certs);
+        Handshake hs = new Handshake(Handshake.Type.CERTIFICATE, cert);
+        Record rc = new Record(ContentType.HANDSHAKE, version, hs.getBytes());
+        socket.recordStream.write(rc);
+    }
+
     private void receiveServerHelloDone() throws IOException {
         Record rc = socket.recordStream.read();
         Handshake shdf = Handshake.read(new ByteArrayInputStream(rc.fragment));
@@ -242,7 +261,6 @@ public class ConnectionContext {
             Alert alert = new Alert(Alert.Level.FATAL, Alert.Description.UNEXPECTED_MESSAGE);
             throw new AlertException(alert, true);
         }
-
         Handshake hsf = Handshake.read(new ByteArrayInputStream(rc.fragment));
         ServerHello sh = (ServerHello) hsf.body;
         sh.getCompressionMethod();

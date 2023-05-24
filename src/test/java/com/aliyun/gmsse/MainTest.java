@@ -12,8 +12,11 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.security.UnrecoverableKeyException;
 
 import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
@@ -24,8 +27,7 @@ import org.junit.Test;
 
 public class MainTest {
     @Test
-    public void test() throws IOException, NoSuchAlgorithmException, KeyManagementException, KeyStoreException,
-            CertificateException {
+    public void test() throws IOException, NoSuchAlgorithmException, KeyManagementException, KeyStoreException, CertificateException, UnrecoverableKeyException {
         GMProvider provider = new GMProvider();
         SSLContext sc = SSLContext.getInstance("TLS", provider);
 
@@ -39,7 +41,17 @@ public class MainTest {
 
         TrustManagerFactory tmf = TrustManagerFactory.getInstance("X509", provider);
         tmf.init(ks);
-        sc.init(null, tmf.getTrustManagers(), null);
+
+        // KeyStore ks = KeyStore.getInstance("JKS");
+        // FileInputStream is = new FileInputStream("");
+        // ks.load(is, null);
+
+        KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
+        kmf.init(ks, null);
+        KeyManager[] kms = kmf.getKeyManagers();
+
+        sc.init(kms, tmf.getTrustManagers(), null);
+
         SSLSocketFactory ssf = sc.getSocketFactory();
 
         URL serverUrl = new URL("https://sm2only.ovssl.cn/");
