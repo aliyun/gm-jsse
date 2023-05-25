@@ -4,10 +4,15 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import javax.net.ssl.*;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.security.SecureRandom;
+
+import javax.net.ssl.KeyManager;
+import javax.net.ssl.SSLSessionContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509KeyManager;
+import javax.net.ssl.X509TrustManager;
 
 public class GMSSLContextSpiTest {
 
@@ -24,11 +29,11 @@ public class GMSSLContextSpiTest {
 
         Method engineGetServerSessionContext = GMSSLContextSpi.class.getDeclaredMethod("engineGetServerSessionContext");
         engineGetServerSessionContext.setAccessible(true);
-        Assert.assertNull(engineGetServerSessionContext.invoke(mySSLContextSpi));
+        Assert.assertNotNull(engineGetServerSessionContext.invoke(mySSLContextSpi));
 
         Method engineGetServerSocketFactory = GMSSLContextSpi.class.getDeclaredMethod("engineGetServerSocketFactory");
         engineGetServerSocketFactory.setAccessible(true);
-        Assert.assertNull(engineGetServerSocketFactory.invoke(mySSLContextSpi));
+        Assert.assertNotNull(engineGetServerSocketFactory.invoke(mySSLContextSpi));
 
         Method engineGetSocketFactory = GMSSLContextSpi.class.getDeclaredMethod("engineGetSocketFactory");
         engineGetSocketFactory.setAccessible(true);

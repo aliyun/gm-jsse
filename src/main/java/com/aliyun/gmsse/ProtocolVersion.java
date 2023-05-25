@@ -2,6 +2,8 @@ package com.aliyun.gmsse;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 final public class ProtocolVersion implements Comparable {
@@ -47,6 +49,10 @@ final public class ProtocolVersion implements Comparable {
 
     public int getMinor() {
         return minor;
+    }
+
+    public String getName() {
+        return name;
     }
 
     @Override
@@ -97,5 +103,35 @@ final public class ProtocolVersion implements Comparable {
         }
 
         return new String[0];
+    }
+
+    public static List<ProtocolVersion> namesOf(String[] protocolNames) {
+        if (protocolNames == null || protocolNames.length == 0) {
+            return Collections.<ProtocolVersion>emptyList();
+        }
+
+        List<ProtocolVersion> pvs = new ArrayList<>(protocolNames.length);
+        for (String pn : protocolNames) {
+            ProtocolVersion pv = ProtocolVersion.nameOf(pn);
+            if (pv == null) {
+                throw new IllegalArgumentException("unsupported protocol: " + pn);
+            }
+
+            pvs.add(pv);
+        }
+
+        return Collections.unmodifiableList(pvs);
+    }
+
+    static ProtocolVersion nameOf(String name) {
+        List<ProtocolVersion> list = new ArrayList<>();
+        list.add(NTLS_1_1);
+        for (ProtocolVersion pv : list) {
+            if (pv.name.equals(name)) {
+                return pv;
+            }
+        }
+
+        return null;
     }
 }

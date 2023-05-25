@@ -36,10 +36,12 @@ public class GMSSLContextSpi extends SSLContextSpi {
     private SecureRandom random;
 
     private SSLSessionContext clientSessionContext;
+    private SSLSessionContext serverSessionContext;
     public SSLConfiguration sslConfig;
 
     public GMSSLContextSpi() {
         clientSessionContext = new SessionContext();
+        serverSessionContext = new SessionContext();
     }
 
     @Override
@@ -59,12 +61,12 @@ public class GMSSLContextSpi extends SSLContextSpi {
 
     @Override
     protected SSLSessionContext engineGetServerSessionContext() {
-        return null;
+        return serverSessionContext;
     }
 
     @Override
     protected SSLServerSocketFactory engineGetServerSocketFactory() {
-        return null;
+        return new GMSSLServerSocketFactory(this);
     }
 
     @Override
@@ -131,7 +133,7 @@ public class GMSSLContextSpi extends SSLContextSpi {
         return supportedProtocols;
     }
 
-    // Get default CipherSuite list.
+    // Get default cipher suites.
     List<CipherSuite> getDefaultCipherSuites(boolean roleIsServer) {
         return supportedSuites;
     }

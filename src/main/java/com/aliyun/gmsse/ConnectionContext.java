@@ -42,6 +42,16 @@ public class ConnectionContext {
         this.session = new GMSSLSession();
     }
 
+    public ConnectionContext(GMSSLContextSpi context) {
+        this(context, new SSLConfiguration(context, true));
+    }
+
+    public ConnectionContext(GMSSLContextSpi context, SSLConfiguration sslConfig) {
+        this.sslContext = context;
+        this.sslConfig = sslConfig;
+        this.session = new GMSSLSession();
+    }
+
     public SSLConfiguration sslConfig;
     public ID sessionId;
     public int peerPort;
