@@ -218,11 +218,331 @@ public class GMSSLSocket extends SSLSocket {
 
     @Override
     public void startHandshake() throws IOException {
-        if (!isConnected) {
-            throw new SocketException("Socket is not connected");
+
+        if (clientMode) {
+            if (!isConnected) {
+                throw new SocketException("Socket is not connected");
+            }
+
+            // send ClientHello
+            sendClientHello();
+
+            // recive ServerHello
+            receiveServerHello();
+
+            // recive ServerCertificate
+            receiveServerCertificate();
+
+            // recive ServerKeyExchange
+            receiveServerKeyExchange();
+
+            // recive ServerHelloDone
+            receiveServerHelloDone();
+
+            // send ClientKeyExchange
+            sendClientKeyExchange();
+
+            // send ChangeCipherSpec
+            sendChangeCipherSpec();
+
+            // send Finished
+            sendFinished();
+
+            // recive ChangeCipherSpec
+            receiveChangeCipherSpec();
+
+            // recive finished
+            receiveFinished();
+
+            this.isNegotiated = true;
+        } else {
+            if (underlyingSocket != null) {
+                socketIn = underlyingSocket.getInputStream();
+                socketOut = underlyingSocket.getOutputStream();
+            } else {
+                socketIn = super.getInputStream();
+                socketOut = super.getOutputStream();
+            }
+            recordStream = new RecordStream(socketIn, socketOut);
+
+            // recive ClientHello
+            receiveClientHello();
+
+            // send ServerHello
+            sendServerHello();
+
+            // send ServerCertificate
+            sendServerCertificate();
+
+            if (getWantClientAuth()) {
+                // send ServerKeyExchange
+                sendServerKeyExchange();
+                // send CertificateRequest
+                sendCertificateRequest();
+            }
+
+            // recive ServerHelloDone
+            sendServerHelloDone();
+
+            if (getWantClientAuth()) {
+                // recive CertificateRequest
+                receiveClientCertificate();
+            }
+            // recive ClientKeyExchange
+            receiveClientKeyExchange();
+
+            if (getWantClientAuth()) {
+                // recive CertificateVerify
+                receiveCertificateVerify();
+            }
+
+            // recive ChangeCipherSpec
+            receiveChangeCipherSpec();
+
+            // recive Finished
+            receiveFinished();
+
+            // send ChangeCipherSpec
+            sendChangeCipherSpec();
+
+            // send finished
+            sendFinished();
         }
 
         connection.kickstart();
+    }
+
+    private void receiveFinished() throws IOException {
+        Record rc = recordStream.read(true);
+        Handshake hs = Handshake.read(new ByteArrayInputStream(rc.fragment));
+        Finished finished = (Finished) hs.body;
+        Finished serverFinished = new Finished(securityParameters.masterSecret, "server finished", handshakes);
+        if (!Arrays.equals(finished.getBytes(), serverFinished.getBytes())) {
+            Alert alert = new Alert(Alert.Level.FATAL, Alert.Description.HANDSHAKE_FAILURE);
+            throw new AlertException(alert, true);
+        }
+    }
+
+    private void receiveChangeCipherSpec() throws IOException {
+        Record rc = recordStream.read();
+        ChangeCipherSpec ccs = ChangeCipherSpec.read(new ByteArrayInputStream(rc.fragment));
+    }
+
+    private void sendFinished() throws IOException {
+        ProtocolVersion version = ProtocolVersion.NTLS_1_1;
+        Finished finished = new Finished(securityParameters.masterSecret, "client finished", handshakes);
+        Handshake hs = new Handshake(Handshake.Type.FINISHED, finished);
+        Record rc = new Record(ContentType.HANDSHAKE, version, hs.getBytes());
+        recordStream.write(rc, true);
+        handshakes.add(hs);
+    }
+
+    private void sendChangeCipherSpec() throws IOException {
+        ProtocolVersion version = ProtocolVersion.NTLS_1_1;
+        Record rc = new Record(ContentType.CHANGE_CIPHER_SPEC, version, new ChangeCipherSpec().getBytes());
+        recordStream.write(rc);
+    }
+
+    private void sendClientKeyExchange() throws IOException {
+        ProtocolVersion version = ProtocolVersion.NTLS_1_1;
+        ClientKeyExchange ckex = new ClientKeyExchange(version, context.getSecureRandom(), securityParameters.encryptionCert);
+        Handshake hs = new Handshake(Handshake.Type.CLIENT_KEY_EXCHANGE, ckex);
+        Record rc = new Record(ContentType.HANDSHAKE, version, hs.getBytes());
+        recordStream.write(rc);
+        handshakes.add(hs);
+        try {
+            securityParameters.masterSecret = ckex.getMasterSecret(securityParameters.clientRandom,
+                    securityParameters.serverRandom);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new SSLException("caculate master secret failed", e);
+        }
+
+        // key_block = PRF(SecurityParameters.master_secret，"keyexpansion"，
+        // SecurityParameters.server_random +SecurityParameters.client_random);
+        // new TLSKeyMaterialSpec(masterSecret, TLSKeyMaterialSpec.KEY_EXPANSION,
+        // key_block.length, server_random, client_random))
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        os.write(securityParameters.serverRandom);
+        os.write(securityParameters.clientRandom);
+        byte[] seed = os.toByteArray();
+        byte[] keyBlock = null;
+        try {
+            keyBlock = Crypto.prf(securityParameters.masterSecret, "key expansion".getBytes(), seed, 128);
+        } catch (Exception e) {
+            throw new SSLException("caculate key block failed", e);
+        }
+
+        // client_write_MAC_secret[SecurityParameters.hash_size]
+        // server_write_MAC_secret[SecurityParameters.hash_size]
+        // client_write_key[SecurityParameters.key_material_length]
+        // server_write_key[SecurityParameters.key_material_length]
+        // clientWriteIV
+        // serverWriteIV
+
+        // client mac key
+        byte[] clientMacKey = new byte[32];
+        System.arraycopy(keyBlock, 0, clientMacKey, 0, 32);
+        recordStream.setClientMacKey(clientMacKey);
+
+        // server mac key
+        byte[] serverMacKey = new byte[32];
+        System.arraycopy(keyBlock, 32, serverMacKey, 0, 32);
+        recordStream.setServerMacKey(serverMacKey);
+
+        // client write key
+        byte[] clientWriteKey = new byte[16];
+        System.arraycopy(keyBlock, 64, clientWriteKey, 0, 16);
+        SM4Engine writeCipher = new SM4Engine();
+        writeCipher.init(true, new KeyParameter(clientWriteKey));
+        recordStream.setWriteCipher(writeCipher);
+
+        // server write key
+        byte[] serverWriteKey = new byte[16];
+        System.arraycopy(keyBlock, 80, serverWriteKey, 0, 16);
+        SM4Engine readCipher = new SM4Engine();
+        readCipher.init(false, new KeyParameter(serverWriteKey));
+        recordStream.setReadCipher(readCipher);
+
+        // client write iv
+        byte[] clientWriteIV = new byte[16];
+        System.arraycopy(keyBlock, 96, clientWriteIV, 0, 16);
+        recordStream.setClientWriteIV(clientWriteIV);
+
+        // server write iv
+        byte[] serverWriteIV = new byte[16];
+        System.arraycopy(keyBlock, 112, serverWriteIV, 0, 16);
+        recordStream.setServerWriteIV(serverWriteIV);
+    }
+
+    private void receiveServerHelloDone() throws IOException {
+        Record rc = recordStream.read();
+        Handshake shdf = Handshake.read(new ByteArrayInputStream(rc.fragment));
+        handshakes.add(shdf);
+    }
+
+    private void receiveServerKeyExchange() throws IOException {
+        Record rc = recordStream.read();
+        Handshake skef = Handshake.read(new ByteArrayInputStream(rc.fragment));
+        ServerKeyExchange ske = (ServerKeyExchange) skef.body;
+        // signature cert
+        X509Certificate signCert = connection.session.peerCerts[0];
+        // encryption cert
+        X509Certificate encryptionCert = connection.session.peerCerts[1];
+        // verify the signature
+        boolean verified = false;
+
+        try {
+            verified = ske.verify(signCert.getPublicKey(), securityParameters.clientRandom,
+                    securityParameters.serverRandom, encryptionCert);
+        } catch (Exception e2) {
+            throw new SSLException("server key exchange verify fails!", e2);
+        }
+
+        if (!verified) {
+            throw new SSLException("server key exchange verify fails!");
+        }
+
+        handshakes.add(skef);
+        securityParameters.encryptionCert = encryptionCert;
+    }
+
+    private void receiveServerCertificate() throws IOException {
+        Record rc = recordStream.read();
+        Handshake cf = Handshake.read(new ByteArrayInputStream(rc.fragment));
+        Certificate cert = (Certificate) cf.body;
+        X509Certificate[] peerCerts = cert.getCertificates();
+        try {
+            context.getTrustManager().checkServerTrusted(peerCerts, connection.session.cipherSuite.getAuthType());
+        } catch (CertificateException e) {
+            throw new SSLException("could not verify peer certificate!", e);
+        }
+        connection.session.peerCerts = peerCerts;
+        connection.session.peerVerified = true;
+        handshakes.add(cf);
+    }
+
+    private void sendServerCertificate() throws IOException {
+        ProtocolVersion version = ProtocolVersion.NTLS_1_1;
+        X509Certificate[] certs = context.getKeyManager().getCertificateChain("");
+        Certificate cert = new Certificate(certs);
+        Handshake hs = new Handshake(Handshake.Type.CERTIFICATE, cert);
+        Record rc = new Record(Record.ContentType.HANDSHAKE, version, hs.getBytes());
+        recordStream.write(rc);
+        handshakes.add(hs);
+    }
+
+    private void sendServerHello() throws IOException {
+        // List<CipherSuite> suites = session.enabledSuites;
+        // List<CompressionMethod> compressions = new ArrayList<CompressionMethod>(2);
+        // compressions.add(CompressionMethod.NULL);
+        ProtocolVersion version = ProtocolVersion.NTLS_1_1;
+        int gmtUnixTime = (int) (System.currentTimeMillis() / 1000L);
+        byte[] randomBytes = context.getSecureRandom().generateSeed(28);
+        ClientRandom random = new ClientRandom(gmtUnixTime, randomBytes);
+        byte[] sessionId = new byte[32];
+        context.getSecureRandom().nextBytes(sessionId);
+
+        CompressionMethod method = CompressionMethod.NULL;
+        ServerHello sh = new ServerHello(version, random.getBytes(), sessionId, CipherSuite.NTLS_SM2_WITH_SM4_SM3, method);
+        Handshake hs = new Handshake(Handshake.Type.SERVER_HELLO, sh);
+        Record rc = new Record(Record.ContentType.HANDSHAKE, version, hs.getBytes());
+        recordStream.write(rc);
+        handshakes.add(hs);
+    }
+
+    private void receiveServerHello() throws IOException {
+        Record rc = recordStream.read();
+        if (rc.contentType != Record.ContentType.HANDSHAKE) {
+            Alert alert = new Alert(Alert.Level.FATAL, Alert.Description.UNEXPECTED_MESSAGE);
+            throw new AlertException(alert, true);
+        }
+
+        Handshake hsf = Handshake.read(new ByteArrayInputStream(rc.fragment));
+        ServerHello sh = (ServerHello) hsf.body;
+        sh.getCompressionMethod();
+        // TODO: process the compresion method
+        connection.session.cipherSuite = sh.getCipherSuite();
+        connection.session.peerHost = remoteHost;
+        connection.session.peerPort = port;
+        connection.session.sessionId = new GMSSLSession.ID(sh.getSessionId());
+        handshakes.add(hsf);
+        securityParameters.serverRandom = sh.getRandom();
+    }
+
+    private void sendClientHello() throws IOException {
+        byte[] sessionId = new byte[0];
+        int gmtUnixTime = (int) (System.currentTimeMillis() / 1000L);
+        byte[] randomBytes = context.getSecureRandom().generateSeed(28);
+        ClientRandom random = new ClientRandom(gmtUnixTime, randomBytes);
+        List<CipherSuite> suites = context.getSupportedCipherSuites();
+        List<CompressionMethod> compressions = new ArrayList<CompressionMethod>(2);
+        compressions.add(CompressionMethod.NULL);
+        ProtocolVersion version = ProtocolVersion.NTLS_1_1;
+        ClientHello ch = new ClientHello(version, random, sessionId, suites, compressions);
+        Handshake hs = new Handshake(Handshake.Type.CLIENT_HELLO, ch);
+        Record rc = new Record(Record.ContentType.HANDSHAKE, version, hs.getBytes());
+        recordStream.write(rc);
+        handshakes.add(hs);
+        securityParameters.clientRandom = random.getBytes();
+    }
+
+    private void receiveClientHello() throws IOException {
+        Record rc = recordStream.read();
+        if (rc.contentType != Record.ContentType.HANDSHAKE) {
+            Alert alert = new Alert(Alert.Level.FATAL, Alert.Description.UNEXPECTED_MESSAGE);
+            throw new AlertException(alert, true);
+        }
+
+        Handshake hsf = Handshake.read(new ByteArrayInputStream(rc.fragment));
+        ClientHello ch = (ClientHello) hsf.body;
+
+        // TODO: check the version, cipher suite, compression methods
+        ProtocolVersion version = ch.getProtocolVersion();
+        ch.getCipherSuites();
+        ch.getCompressionMethods();
+        ch.getSessionId();
+        handshakes.add(hsf);
     }
 
     private void ensureConnect() throws IOException {

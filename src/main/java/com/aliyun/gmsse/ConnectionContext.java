@@ -39,7 +39,6 @@ public class ConnectionContext {
         this.sslContext = context;
         this.socket = socket;
         this.sslConfig = new SSLConfiguration(context, isClientMode);
-        this.session = new GMSSLSession();
     }
 
     public ConnectionContext(GMSSLContextSpi context) {
