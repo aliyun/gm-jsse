@@ -208,8 +208,95 @@ public class GMSSLSocket extends SSLSocket {
 
     @Override
     public void startHandshake() throws IOException {
-        if (!isConnected) {
-            throw new SocketException("Socket is not connected");
+
+        if (clientMode) {
+            if (!isConnected) {
+                throw new SocketException("Socket is not connected");
+            }
+
+            // send ClientHello
+            sendClientHello();
+
+            // recive ServerHello
+            receiveServerHello();
+
+            // recive ServerCertificate
+            receiveServerCertificate();
+
+            // recive ServerKeyExchange
+            receiveServerKeyExchange();
+
+            // recive ServerHelloDone
+            receiveServerHelloDone();
+
+            // send ClientKeyExchange
+            sendClientKeyExchange();
+
+            // send ChangeCipherSpec
+            sendChangeCipherSpec();
+
+            // send Finished
+            sendFinished();
+
+            // recive ChangeCipherSpec
+            receiveChangeCipherSpec();
+
+            // recive finished
+            receiveFinished();
+
+            this.isNegotiated = true;
+        } else {
+            if (underlyingSocket != null) {
+                socketIn = underlyingSocket.getInputStream();
+                socketOut = underlyingSocket.getOutputStream();
+            } else {
+                socketIn = super.getInputStream();
+                socketOut = super.getOutputStream();
+            }
+            recordStream = new RecordStream(socketIn, socketOut);
+
+            // recive ClientHello
+            receiveClientHello();
+
+            // send ServerHello
+            sendServerHello();
+
+            // send ServerCertificate
+            sendServerCertificate();
+
+            if (getWantClientAuth()) {
+                // send ServerKeyExchange
+                sendServerKeyExchange();
+                // send CertificateRequest
+                sendCertificateRequest();
+            }
+
+            // recive ServerHelloDone
+            sendServerHelloDone();
+
+            if (getWantClientAuth()) {
+                // recive CertificateRequest
+                receiveClientCertificate();
+            }
+            // recive ClientKeyExchange
+            receiveClientKeyExchange();
+
+            if (getWantClientAuth()) {
+                // recive CertificateVerify
+                receiveCertificateVerify();
+            }
+
+            // recive ChangeCipherSpec
+            receiveChangeCipherSpec();
+
+            // recive Finished
+            receiveFinished();
+
+            // send ChangeCipherSpec
+            sendChangeCipherSpec();
+
+            // send finished
+            sendFinished();
         }
 
         connection.kickstart();
