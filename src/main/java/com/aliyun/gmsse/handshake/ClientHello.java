@@ -35,6 +35,26 @@ public class ClientHello extends Handshake.Body {
         this.compressions = compressions;
     }
 
+    public ProtocolVersion getProtocolVersion() {
+        return version;
+    }
+
+    public ClientRandom getClientRandom() {
+        return random;
+    }
+
+    public List<CipherSuite> getCipherSuites() {
+        return suites;
+    }
+
+    public List<CompressionMethod> getCompressionMethods() {
+        return compressions;
+    }
+
+    public byte[] getSessionId() {
+        return sessionId;
+    }
+
     @Override
     public String toString() {
         StringWriter str = new StringWriter();

@@ -1,5 +1,8 @@
 package com.aliyun.gmsse;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
@@ -15,6 +18,7 @@ final public class CipherSuite {
     private int keyLength;
     private String kexName;
     private String sigName;
+    private List<ProtocolVersion> supportedProtocols;
 
     public CipherSuite(String cipherName, String kexName, String sigName, String macName, int keyLength, int id1,
             int id2, String name, ProtocolVersion version) {
@@ -23,6 +27,7 @@ final public class CipherSuite {
         this.name = name;
         this.keyLength = keyLength;
         this.id = new byte[] { (byte) id1, (byte) id2 };
+        this.supportedProtocols = Arrays.asList(new ProtocolVersion[]{ version });
         namesToSuites.put(name, this);
     }
 
@@ -76,5 +81,44 @@ final public class CipherSuite {
         }
 
         return names;
+    }
+
+    public static List<CipherSuite> validValuesOf(String[] names) {
+        if (names == null) {
+            throw new IllegalArgumentException("CipherSuites cannot be null");
+        }
+
+        List<CipherSuite> cipherSuites = new ArrayList<>(names.length);
+        for (String name : names) {
+            if (name == null || name.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "The specified CipherSuites array contains " +
+                        "invalid null or empty string elements");
+            }
+
+            boolean found = false;
+
+            List<CipherSuite> all = new ArrayList<>();
+            all.add(NTLS_SM2_WITH_SM4_SM3);
+            for (CipherSuite cs : all) {
+                if (!cs.supportedProtocols.isEmpty()) {
+                    if (cs.name.equals(name)) {
+                        cipherSuites.add(cs);
+                        found = true;
+                        break;
+                    }
+                } else {
+                    // values() is ordered, remaining cipher suites are
+                    // not supported.
+                    break;
+                }
+            }
+            if (!found) {
+                throw new IllegalArgumentException(
+                        "Unsupported CipherSuite: "  + name);
+            }
+        }
+
+        return Collections.unmodifiableList(cipherSuites);
     }
 }

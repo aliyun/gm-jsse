@@ -16,6 +16,9 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
+import java.net.UnknownHostException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,8 +31,8 @@ public class GMSSLSocket extends SSLSocket {
     int port;
     public SSLSessionContext sessionContext;
     private String remoteHost;
-    private boolean clientMode;
     private boolean needAuthClient = false;
+    private boolean clientMode = true;
     private Socket underlyingSocket;
     private boolean autoClose;
     private boolean isConnected = false;
@@ -41,25 +44,33 @@ public class GMSSLSocket extends SSLSocket {
     private final AppDataInputStream appInput = new AppDataInputStream();
     private final AppDataOutputStream appOutput = new AppDataOutputStream();
 
-    private final GMSSLContextSpi context;
     private ConnectionContext connection;
+
+    private SecurityParameters securityParameters = new SecurityParameters();
+    private final GMSSLContextSpi context;
+
+
+    public GMSSLSocket(GMSSLContextSpi context, SSLConfiguration sslConfig) {
+        this.context = context;
+        this.connection = new ConnectionContext(context, sslConfig);
+    }
 
     public GMSSLSocket(GMSSLContextSpi context, String host, int port) throws IOException {
         super(host, port);
-        remoteHost = host;
         this.context = context;
         this.connection = new ConnectionContext(context, this, true);
+        remoteHost = host;
         ensureConnect();
         this.isConnected = true;
     }
 
     public GMSSLSocket(GMSSLContextSpi context, InetAddress host, int port) throws IOException {
         super(host, port);
+        this.context = context;
         remoteHost = host.getHostName();
         if (remoteHost == null) {
             remoteHost = host.getHostAddress();
         }
-        this.context = context;
         this.connection = new ConnectionContext(context, this, true);
         ensureConnect();
         this.isConnected = true;
@@ -184,17 +195,8 @@ public class GMSSLSocket extends SSLSocket {
         if (protocols == null || protocols.length == 0) {
             throw new IllegalArgumentException();
         }
-        for (int i = 0; i < protocols.length; i++) {
-            if (!(protocols[i].equalsIgnoreCase("NTLSv1.1"))) {
-                throw new IllegalArgumentException("unsupported protocol: " + protocols[i]);
-            }
-        }
 
-        List<ProtocolVersion> enabledProtocols = new ArrayList<>(protocols.length);
-        for (int i = 0; i < protocols.length; i++) {
-            enabledProtocols.add(ProtocolVersion.NTLS_1_1);
-        }
-        connection.sslConfig.enabledProtocols = enabledProtocols;
+        connection.sslConfig.enabledProtocols = ProtocolVersion.namesOf(protocols);
     }
 
     @Override
@@ -209,6 +211,9 @@ public class GMSSLSocket extends SSLSocket {
 
     @Override
     public void setWantClientAuth(boolean want) {
+        connection.sslConfig.clientAuthType =
+                (want ? ClientAuthType.CLIENT_AUTH_REQUESTED :
+                        ClientAuthType.CLIENT_AUTH_NONE);
     }
 
     @Override
@@ -231,6 +236,7 @@ public class GMSSLSocket extends SSLSocket {
                 connect(socketAddress);
             }
         }
+
         if (underlyingSocket != null) {
             socketIn = underlyingSocket.getInputStream();
             socketOut = underlyingSocket.getOutputStream();

@@ -16,18 +16,13 @@ public class GMSSLSocketFactory extends SSLSocketFactory {
     }
 
     @Override
-    public Socket createSocket(Socket socket, String host, int port, boolean autoClose) throws IOException {
-        return new GMSSLSocket(context, socket, host, port, autoClose);
-    }
-
-    @Override
     public String[] getDefaultCipherSuites() {
-        return null;
+        return CipherSuite.namesOf(context.getDefaultCipherSuites(false));
     }
 
     @Override
     public String[] getSupportedCipherSuites() {
-        return null;
+        return CipherSuite.namesOf(context.getSupportedCipherSuites());
     }
 
     @Override
@@ -52,4 +47,8 @@ public class GMSSLSocketFactory extends SSLSocketFactory {
         return new GMSSLSocket(context, address, port, localAddress, localPort);
     }
 
+    @Override
+    public Socket createSocket(Socket socket, String host, int port, boolean autoClose) throws IOException {
+        return new GMSSLSocket(context, socket, host, port, autoClose);
+    }
 }
