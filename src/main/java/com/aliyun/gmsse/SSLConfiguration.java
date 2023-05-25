@@ -9,6 +9,7 @@ public class SSLConfiguration {
         this.enabledCipherSuites = sslContext.getDefaultCipherSuites(!isClientMode);
         this.clientAuthType = ClientAuthType.CLIENT_AUTH_NONE;
         this.isClientMode = isClientMode;
+        this.enableSessionCreation = true;
     }
 
     public List<ProtocolVersion> enabledProtocols;
