@@ -1,6 +1,7 @@
 package com.aliyun.gmsse;
 
 import java.util.HashMap;
+import java.util.List;
 
 final public class CipherSuite {
     private static final HashMap<String, CipherSuite> namesToSuites = new HashMap<String, CipherSuite>();
@@ -65,5 +66,15 @@ final public class CipherSuite {
 
     public String getAuthType() {
         return kexName + "_" + sigName;
+    }
+
+    public static String[] namesOf(List<CipherSuite> cipherSuites) {
+        String[] names = new String[cipherSuites.size()];
+        int i = 0;
+        for (CipherSuite cipherSuite : cipherSuites) {
+            names[i++] = cipherSuite.name;
+        }
+
+        return names;
     }
 }

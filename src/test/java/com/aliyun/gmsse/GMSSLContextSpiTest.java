@@ -60,8 +60,7 @@ public class GMSSLContextSpiTest {
         tms[1] = Mockito.mock(X509TrustManager.class);
         tms[2] = Mockito.mock(X509TrustManager.class);
 
-        SecureRandom secureRandom = Mockito.mock(SecureRandom.class);
-        engineInitMethod.invoke(mySSLContextSpi, kms, tms, secureRandom);
+        engineInitMethod.invoke(mySSLContextSpi, kms, tms, new SecureRandom());
         Field keyManager = GMSSLContextSpi.class.getDeclaredField("keyManager");
         keyManager.setAccessible(true);
         Assert.assertEquals(x509KeyManager, keyManager.get(mySSLContextSpi));

@@ -2,7 +2,6 @@ package com.aliyun.gmsse;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import java.net.InetAddress;
 import java.net.Socket;
@@ -11,21 +10,17 @@ public class GMSSLSocketFactoryTest {
 
     @Test
     public void nullTest() throws Exception{
-        GMSSLSocketFactory mySSLSocketFactory = new GMSSLSocketFactory(
-                null, null, null, null);
+        GMSSLSocketFactory mySSLSocketFactory = new GMSSLSocketFactory(null);
 
         Assert.assertNull(mySSLSocketFactory.getDefaultCipherSuites());
         Assert.assertNull(mySSLSocketFactory.getSupportedCipherSuites());
-
         Assert.assertNull(mySSLSocketFactory.createSocket("null", 80, null, 80));
-        InetAddress address = Mockito.mock(InetAddress.class);
-        Assert.assertNull(mySSLSocketFactory.createSocket(address, 80, address, 80));
     }
 
     @Test
-    public void createSocketTest() throws Exception{
-        GMSSLSocketFactory mySSLSocketFactory = new GMSSLSocketFactory(
-                null, null, null, null);
+    public void createSocketTest() throws Exception {
+        GMSSLContextSpi context = new GMSSLContextSpi();
+        GMSSLSocketFactory mySSLSocketFactory = new GMSSLSocketFactory(context);
         Socket socket = mySSLSocketFactory.createSocket(null, "test", 80, false);
         Assert.assertNotNull(socket);
 

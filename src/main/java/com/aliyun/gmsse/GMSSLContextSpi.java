@@ -5,6 +5,8 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContextSpi;
@@ -18,11 +20,23 @@ import javax.net.ssl.X509KeyManager;
 import javax.net.ssl.X509TrustManager;
 
 public class GMSSLContextSpi extends SSLContextSpi {
+    static List<CipherSuite> supportedSuites = new CopyOnWriteArrayList<CipherSuite>();
+    static List<ProtocolVersion> supportedProtocols = new CopyOnWriteArrayList<ProtocolVersion>();
+
+    static {
+        // setup suites
+        supportedSuites.add(CipherSuite.NTLS_SM2_WITH_SM4_SM3);
+
+        // setup protocols
+        supportedProtocols.add(ProtocolVersion.NTLS_1_1);
+    }
 
     private X509KeyManager keyManager;
     private X509TrustManager trustManager;
     private SecureRandom random;
+
     private SSLSessionContext clientSessionContext;
+    public SSLConfiguration sslConfig;
 
     public GMSSLContextSpi() {
         clientSessionContext = new SessionContext();
@@ -55,7 +69,7 @@ public class GMSSLContextSpi extends SSLContextSpi {
 
     @Override
     protected SSLSocketFactory engineGetSocketFactory() {
-        return new GMSSLSocketFactory(keyManager, trustManager, random, clientSessionContext);
+        return new GMSSLSocketFactory(this);
     }
 
     @Override
@@ -102,5 +116,35 @@ public class GMSSLContextSpi extends SSLContextSpi {
         } catch (KeyStoreException e) {
             throw new KeyManagementException(e.toString());
         }
+    }
+
+    public List<CipherSuite> getSupportedCipherSuites() {
+        return supportedSuites;
+    }
+
+    public List<ProtocolVersion> getSupportedProtocolVersions() {
+        return supportedProtocols;
+    }
+
+    // Get default protocols.
+    List<ProtocolVersion> getDefaultProtocolVersions(boolean roleIsServer) {
+        return supportedProtocols;
+    }
+
+    // Get default CipherSuite list.
+    List<CipherSuite> getDefaultCipherSuites(boolean roleIsServer) {
+        return supportedSuites;
+    }
+
+    public SecureRandom getSecureRandom() {
+        return random;
+    }
+
+    public X509KeyManager getKeyManager() {
+        return keyManager;
+    }
+
+    public X509TrustManager getTrustManager() {
+        return trustManager;
     }
 }

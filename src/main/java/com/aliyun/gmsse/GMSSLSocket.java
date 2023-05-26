@@ -37,33 +37,21 @@ import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * GMSSLSocket
  */
 public class GMSSLSocket extends SSLSocket {
-    static List<CipherSuite> supportedSuites = new CopyOnWriteArrayList<CipherSuite>();
-    static List<ProtocolVersion> supportedPtrotocols = new CopyOnWriteArrayList<ProtocolVersion>();
 
-    static {
-        // setup suites
-        supportedSuites.add(CipherSuite.NTLS_SM2_WITH_SM4_SM3);
-
-        // setup protocols
-        supportedPtrotocols.add(ProtocolVersion.NTLS_1_1);
-    }
-
-    GMSSLSession session;
     BufferedOutputStream handshakeOut;
     int port;
-    private boolean createSessions;
     public SSLSessionContext sessionContext;
     private String remoteHost;
     private boolean clientMode;
     private Socket underlyingSocket;
     private int underlyingPort;
     private boolean autoClose;
+
     // raw socket in/out
     private InputStream socketIn;
     private OutputStream socketOut;
@@ -71,33 +59,33 @@ public class GMSSLSocket extends SSLSocket {
 
     private SecurityParameters securityParameters = new SecurityParameters();
     List<Handshake> handshakes = new ArrayList<Handshake>();
+    private final GMSSLContextSpi context;
+    private ConnectionContext connection;
 
-    public GMSSLSocket(String host, int port) throws IOException {
+    public GMSSLSocket(GMSSLContextSpi context, String host, int port) throws IOException {
         super(host, port);
         remoteHost = host;
-        initialize();
+        this.context = context;
+        this.connection = new ConnectionContext(context, true);
     }
 
-    private void initialize() {
-        session = new GMSSLSession(supportedSuites, supportedPtrotocols);
-        session.protocol = ProtocolVersion.NTLS_1_1;
-    }
-
-    public GMSSLSocket(InetAddress host, int port) throws IOException {
+    public GMSSLSocket(GMSSLContextSpi context, InetAddress host, int port) throws IOException {
         super(host, port);
         remoteHost = host.getHostName();
         if (remoteHost == null) {
             remoteHost = host.getHostAddress();
         }
-        initialize();
+        this.context = context;
+        this.connection = new ConnectionContext(context, true);
     }
 
-    public GMSSLSocket(Socket socket, String host, int port, boolean autoClose) throws IOException {
+    public GMSSLSocket(GMSSLContextSpi context, Socket socket, String host, int port, boolean autoClose) throws IOException {
         underlyingSocket = socket;
         remoteHost = host;
         underlyingPort = port;
         this.autoClose = autoClose;
-        initialize();
+        this.context = context;
+        this.connection = new ConnectionContext(context, true);
     }
 
     @Override
@@ -106,25 +94,17 @@ public class GMSSLSocket extends SSLSocket {
 
     @Override
     public boolean getEnableSessionCreation() {
-        return createSessions;
+        return connection.sslConfig.enableSessionCreation;
     }
 
     @Override
     public String[] getEnabledCipherSuites() {
-        List<String> suites = new ArrayList<String>();
-        for (CipherSuite suite : session.enabledSuites) {
-            suites.add(suite.getName());
-        }
-        return suites.toArray(new String[0]);
+        return CipherSuite.namesOf(connection.sslConfig.enabledCipherSuites);
     }
 
     @Override
     public String[] getEnabledProtocols() {
-        List<String> protocols = new ArrayList<String>();
-        for (ProtocolVersion version : session.enabledProtocols) {
-            protocols.add(version.toString());
-        }
-        return protocols.toArray(new String[0]);
+        return ProtocolVersion.toStringArray(connection.sslConfig.enabledProtocols);
     }
 
     @Override
@@ -134,25 +114,17 @@ public class GMSSLSocket extends SSLSocket {
 
     @Override
     public SSLSession getSession() {
-        return session;
+        return connection.session;
     }
 
     @Override
     public String[] getSupportedCipherSuites() {
-        List<String> suites = new ArrayList<String>();
-        for (CipherSuite suite : supportedSuites) {
-            suites.add(suite.getName());
-        }
-        return suites.toArray(new String[0]);
+        return CipherSuite.namesOf(context.getSupportedCipherSuites());
     }
 
     @Override
     public String[] getSupportedProtocols() {
-        List<String> protocols = new ArrayList<String>();
-        for (ProtocolVersion version : supportedPtrotocols) {
-            protocols.add(version.toString());
-        }
-        return protocols.toArray(new String[0]);
+        return ProtocolVersion.toStringArray(context.getSupportedProtocolVersions());
     }
 
     @Override
@@ -171,7 +143,7 @@ public class GMSSLSocket extends SSLSocket {
 
     @Override
     public void setEnableSessionCreation(boolean flag) {
-        createSessions = flag;
+        connection.sslConfig.enableSessionCreation = flag;
     }
 
     @Override
@@ -185,15 +157,13 @@ public class GMSSLSocket extends SSLSocket {
             }
         }
 
-        synchronized (session.enabledSuites) {
-            session.enabledSuites.clear();
-            for (int i = 0; i < suites.length; i++) {
-                CipherSuite suite = CipherSuite.forName(suites[i]);
-                if (!session.enabledSuites.contains(suite)) {
-                    session.enabledSuites.add(suite);
-                }
-            }
+        List<CipherSuite> cipherSuites = new ArrayList<>(suites.length);
+        for (int i = 0; i < suites.length; i++) {
+            CipherSuite suite = CipherSuite.forName(suites[i]);
+            cipherSuites.add(suite);
         }
+
+        connection.sslConfig.enabledCipherSuites = cipherSuites;
     }
 
     @Override
@@ -207,12 +177,11 @@ public class GMSSLSocket extends SSLSocket {
             }
         }
 
-        synchronized (session.enabledProtocols) {
-            session.enabledProtocols.clear();
-            for (int i = 0; i < protocols.length; i++) {
-                session.enabledProtocols.add(ProtocolVersion.NTLS_1_1);
-            }
+        List<ProtocolVersion> enabledProtocols = new ArrayList<>(protocols.length);
+        for (int i = 0; i < protocols.length; i++) {
+            enabledProtocols.add(ProtocolVersion.NTLS_1_1);
         }
+        connection.sslConfig.enabledProtocols = enabledProtocols;
     }
 
     @Override
@@ -296,7 +265,7 @@ public class GMSSLSocket extends SSLSocket {
 
     private void sendClientKeyExchange() throws IOException {
         ProtocolVersion version = ProtocolVersion.NTLS_1_1;
-        ClientKeyExchange ckex = new ClientKeyExchange(version, session.random, securityParameters.encryptionCert);
+        ClientKeyExchange ckex = new ClientKeyExchange(version, context.getSecureRandom(), securityParameters.encryptionCert);
         Handshake hs = new Handshake(Handshake.Type.CLIENT_KEY_EXCHANGE, ckex);
         Record rc = new Record(ContentType.HANDSHAKE, version, hs.getBytes());
         recordStream.write(rc);
@@ -377,9 +346,9 @@ public class GMSSLSocket extends SSLSocket {
         Handshake skef = Handshake.read(new ByteArrayInputStream(rc.fragment));
         ServerKeyExchange ske = (ServerKeyExchange) skef.body;
         // signature cert
-        X509Certificate signCert = session.peerCerts[0];
+        X509Certificate signCert = connection.session.peerCerts[0];
         // encryption cert
-        X509Certificate encryptionCert = session.peerCerts[1];
+        X509Certificate encryptionCert = connection.session.peerCerts[1];
         // verify the signature
         boolean verified = false;
 
@@ -404,12 +373,12 @@ public class GMSSLSocket extends SSLSocket {
         Certificate cert = (Certificate) cf.body;
         X509Certificate[] peerCerts = cert.getCertificates();
         try {
-            session.trustManager.checkServerTrusted(peerCerts, session.cipherSuite.getAuthType());
+            context.getTrustManager().checkServerTrusted(peerCerts, connection.session.cipherSuite.getAuthType());
         } catch (CertificateException e) {
             throw new SSLException("could not verify peer certificate!", e);
         }
-        session.peerCerts = peerCerts;
-        session.peerVerified = true;
+        connection.session.peerCerts = peerCerts;
+        connection.session.peerVerified = true;
         handshakes.add(cf);
     }
 
@@ -424,10 +393,10 @@ public class GMSSLSocket extends SSLSocket {
         ServerHello sh = (ServerHello) hsf.body;
         sh.getCompressionMethod();
         // TODO: process the compresion method
-        session.cipherSuite = sh.getCipherSuite();
-        session.peerHost = remoteHost;
-        session.peerPort = port;
-        session.sessionId = new GMSSLSession.ID(sh.getSessionId());
+        connection.session.cipherSuite = sh.getCipherSuite();
+        connection.session.peerHost = remoteHost;
+        connection.session.peerPort = port;
+        connection.session.sessionId = new GMSSLSession.ID(sh.getSessionId());
         handshakes.add(hsf);
         securityParameters.serverRandom = sh.getRandom();
     }
@@ -435,8 +404,8 @@ public class GMSSLSocket extends SSLSocket {
     private void sendClientHello() throws IOException {
         byte[] sessionId = new byte[0];
         int gmtUnixTime = (int) (System.currentTimeMillis() / 1000L);
-        ClientRandom random = new ClientRandom(gmtUnixTime, session.random.generateSeed(28));
-        List<CipherSuite> suites = session.enabledSuites;
+        ClientRandom random = new ClientRandom(gmtUnixTime, context.getSecureRandom().generateSeed(28));
+        List<CipherSuite> suites = context.getSupportedCipherSuites();
         List<CompressionMethod> compressions = new ArrayList<CompressionMethod>(2);
         compressions.add(CompressionMethod.NULL);
         ProtocolVersion version = ProtocolVersion.NTLS_1_1;
