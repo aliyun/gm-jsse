@@ -24,8 +24,7 @@ public class ClientKeyExchange extends Handshake.Body {
         ba.write(random.generateSeed(46));
         this.preMasterSecret = ba.toByteArray();
         try {
-            this.encryptedPreMasterSecret = Crypto.encrypt((BCECPublicKey) certificate.getPublicKey(),
-                    this.preMasterSecret);
+            this.encryptedPreMasterSecret = Crypto.encrypt((BCECPublicKey) certificate.getPublicKey(), this.preMasterSecret);
         } catch (Exception ex) {
             throw new RuntimeException(ex.getMessage(), ex);
         }

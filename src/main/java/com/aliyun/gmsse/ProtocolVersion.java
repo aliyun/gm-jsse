@@ -2,6 +2,7 @@ package com.aliyun.gmsse;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 
 final public class ProtocolVersion implements Comparable {
     public static final ProtocolVersion NTLS_1_1 = new ProtocolVersion(1, 1, "NTLSv1.1");
@@ -82,5 +83,19 @@ final public class ProtocolVersion implements Comparable {
     @Override
     public String toString() {
         return name;
+    }
+
+    public static String[] toStringArray(List<ProtocolVersion> protocolVersions) {
+        if ((protocolVersions != null) && !protocolVersions.isEmpty()) {
+            String[] protocolNames = new String[protocolVersions.size()];
+            int i = 0;
+            for (ProtocolVersion pv : protocolVersions) {
+                protocolNames[i++] = pv.name;
+            }
+
+            return protocolNames;
+        }
+
+        return new String[0];
     }
 }

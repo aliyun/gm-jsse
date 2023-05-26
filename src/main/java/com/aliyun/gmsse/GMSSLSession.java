@@ -31,6 +31,9 @@ public class GMSSLSession implements SSLSession {
         this.peerVerified = false;
     }
 
+    public GMSSLSession() {
+    }
+
     @Override
     public int getApplicationBufferSize() {
         return 0;
