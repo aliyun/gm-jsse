@@ -1,7 +1,10 @@
 package com.aliyun.gmsse;
 
+import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URL;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
@@ -22,14 +25,15 @@ import org.junit.Test;
 
 public class MainTest {
     @Test
-    public void test() throws IOException, NoSuchAlgorithmException, KeyManagementException, KeyStoreException, CertificateException {
+    public void test() throws IOException, NoSuchAlgorithmException, KeyManagementException, KeyStoreException,
+            CertificateException {
         GMProvider provider = new GMProvider();
         SSLContext sc = SSLContext.getInstance("TLS", provider);
 
         BouncyCastleProvider bc = new BouncyCastleProvider();
         KeyStore ks = KeyStore.getInstance("JKS");
         CertificateFactory cf = CertificateFactory.getInstance("X.509", bc);
-        FileInputStream is = new FileInputStream(this.getClass().getClassLoader().getResource("WoTrus-SM2.crt").getFile());
+        InputStream is = this.getClass().getClassLoader().getResourceAsStream("WoTrus-SM2.crt");
         X509Certificate cert = (X509Certificate) cf.generateCertificate(is);
         ks.load(null, null);
         ks.setCertificateEntry("gmca", cert);
@@ -47,5 +51,15 @@ public class MainTest {
         conn.connect();
         Assert.assertEquals(200, conn.getResponseCode());
         Assert.assertEquals("ECC-SM2-WITH-SM4-SM3", conn.getCipherSuite());
+        // 读取服务器端返回的内容
+        InputStream connInputStream = conn.getInputStream();
+        InputStreamReader isReader = new InputStreamReader(connInputStream, "utf-8");
+        BufferedReader br = new BufferedReader(isReader);
+        StringBuffer buffer = new StringBuffer();
+        String line = null;
+        while ((line = br.readLine()) != null) {
+            buffer.append(line);
+        }
+        Assert.assertTrue(buffer.toString().contains("沃通"));
     }
 }
