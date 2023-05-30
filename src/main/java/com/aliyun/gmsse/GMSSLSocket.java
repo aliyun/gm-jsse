@@ -358,4 +358,17 @@ public class GMSSLSocket extends SSLSocket {
         }
 
     }
+
+    /**
+     * Enables or disables the Nagle optimization.
+     * @see java.net.Socket#setTcpNoDelay
+     */
+    @Override
+    public final void setTcpNoDelay(boolean value) throws SocketException {
+        if (underlyingSocket != null) {
+            underlyingSocket.setTcpNoDelay(value);
+        } else {
+            this.setTcpNoDelay(value);
+        }
+    }
 }
