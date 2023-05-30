@@ -32,6 +32,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.net.SocketException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -51,6 +52,8 @@ public class GMSSLSocket extends SSLSocket {
     private Socket underlyingSocket;
     private int underlyingPort;
     private boolean autoClose;
+    private boolean isConnected = false;
+    private boolean isNegotiated = false;
 
     // raw socket in/out
     private InputStream socketIn;
@@ -67,6 +70,8 @@ public class GMSSLSocket extends SSLSocket {
         remoteHost = host;
         this.context = context;
         this.connection = new ConnectionContext(context, true);
+        ensureConnect();
+        this.isConnected = true;
     }
 
     public GMSSLSocket(GMSSLContextSpi context, InetAddress host, int port) throws IOException {
@@ -77,6 +82,8 @@ public class GMSSLSocket extends SSLSocket {
         }
         this.context = context;
         this.connection = new ConnectionContext(context, true);
+        ensureConnect();
+        this.isConnected = true;
     }
 
     public GMSSLSocket(GMSSLContextSpi context, Socket socket, String host, int port, boolean autoClose) throws IOException {
@@ -86,6 +93,36 @@ public class GMSSLSocket extends SSLSocket {
         this.autoClose = autoClose;
         this.context = context;
         this.connection = new ConnectionContext(context, true);
+        ensureConnect();
+        this.isConnected = true;
+    }
+
+    public GMSSLSocket(GMSSLContextSpi context, String host, int port, InetAddress localAddr, int localPort) throws IOException {
+        bind(new InetSocketAddress(localAddr, localPort));
+        SocketAddress socketAddress = host != null ? new InetSocketAddress(host, port) :
+               new InetSocketAddress(InetAddress.getByName(null), port);
+        remoteHost = host;
+        this.context = context;
+        this.connection = new ConnectionContext(context, true);
+        connect(socketAddress, 0);
+        ensureConnect();
+        this.isConnected = true;
+        startHandshake();
+    }
+
+    public GMSSLSocket(GMSSLContextSpi context, InetAddress host, int port, InetAddress localAddress, int localPort) throws IOException {
+        bind(new InetSocketAddress(localAddress, localPort));
+        SocketAddress socketAddress = new InetSocketAddress(host, port);
+        remoteHost = host.getHostName();
+        if (remoteHost == null) {
+            remoteHost = host.getHostAddress();
+        }
+        this.context = context;
+        this.connection = new ConnectionContext(context, true);
+        connect(socketAddress, 0);
+        ensureConnect();
+        this.isConnected = true;
+        startHandshake();
     }
 
     @Override
@@ -199,7 +236,9 @@ public class GMSSLSocket extends SSLSocket {
 
     @Override
     public void startHandshake() throws IOException {
-        ensureConnect();
+        if (!isConnected) {
+            throw new SocketException("Socket is not connected");
+        }
 
         // send ClientHello
         sendClientHello();
@@ -230,6 +269,8 @@ public class GMSSLSocket extends SSLSocket {
 
         // recive finished
         receiveFinished();
+
+        this.isNegotiated = true;
     }
 
     private void receiveFinished() throws IOException {
