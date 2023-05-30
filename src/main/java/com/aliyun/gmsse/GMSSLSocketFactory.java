@@ -43,13 +43,13 @@ public class GMSSLSocketFactory extends SSLSocketFactory {
     @Override
     public Socket createSocket(String host, int port, InetAddress localHost, int localPort)
             throws IOException, UnknownHostException {
-        return null;
+        return new GMSSLSocket(context, host, port, localHost, localPort);
     }
 
     @Override
     public Socket createSocket(InetAddress address, int port, InetAddress localAddress, int localPort)
             throws IOException {
-        return null;
+        return new GMSSLSocket(context, address, port, localAddress, localPort);
     }
 
 }
