@@ -32,6 +32,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.net.SocketException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -446,5 +447,18 @@ public class GMSSLSocket extends SSLSocket {
     @Override
     public InputStream getInputStream() throws IOException {
         return new AppDataInputStream(recordStream);
+    }
+
+    /**
+     * Enables or disables the Nagle optimization.
+     * @see java.net.Socket#setTcpNoDelay
+     */
+    @Override
+    public final void setTcpNoDelay(boolean value) throws SocketException {
+        if (underlyingSocket != null) {
+            underlyingSocket.setTcpNoDelay(value);
+        } else {
+            this.setTcpNoDelay(value);
+        }
     }
 }
