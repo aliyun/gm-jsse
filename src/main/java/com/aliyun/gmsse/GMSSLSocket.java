@@ -481,11 +481,27 @@ public class GMSSLSocket extends SSLSocket {
 
     @Override
     public OutputStream getOutputStream() throws IOException {
+        if (isClosed()) {
+            throw new SocketException("Socket is closed");
+        }
+
+        if (!isConnected) {
+            throw new SocketException("Socket is not connected");
+        }
+
         return new AppDataOutputStream(recordStream);
     }
 
     @Override
     public InputStream getInputStream() throws IOException {
+        if (isClosed()) {
+            throw new SocketException("Socket is closed");
+        }
+
+        if (!isConnected) {
+            throw new SocketException("Socket is not connected");
+        }
+
         return new AppDataInputStream(recordStream);
     }
 }
