@@ -2,7 +2,6 @@ package com.aliyun.gmsse;
 
 import com.aliyun.gmsse.crypto.Crypto;
 import com.aliyun.gmsse.handshake.*;
-import com.aliyun.gmsse.record.AppDataOutputStream;
 import com.aliyun.gmsse.record.Handshake;
 import org.bouncycastle.crypto.engines.SM4Engine;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
@@ -462,7 +461,7 @@ public class GMSSLSocketTest {
     @Test
     public void getOutputStreamTest() throws Exception {
         GMSSLSocket gmsslSocket = new GMSSLSocket(getSSLContext(), "www.aliyun.com", 80);
-        Assert.assertTrue(gmsslSocket.getOutputStream() instanceof AppDataOutputStream);
+        Assert.assertNotNull(gmsslSocket.getOutputStream());
         gmsslSocket.close();
     }
 }

@@ -9,8 +9,6 @@ import com.aliyun.gmsse.handshake.Finished;
 import com.aliyun.gmsse.handshake.ServerHello;
 import com.aliyun.gmsse.handshake.ServerKeyExchange;
 import com.aliyun.gmsse.record.Alert;
-import com.aliyun.gmsse.record.AppDataInputStream;
-import com.aliyun.gmsse.record.AppDataOutputStream;
 import com.aliyun.gmsse.record.ChangeCipherSpec;
 import com.aliyun.gmsse.record.Handshake;
 
@@ -53,7 +51,6 @@ public class GMSSLSocket extends SSLSocket {
     private int underlyingPort;
     private boolean autoClose;
     private boolean isConnected = false;
-    private boolean isNegotiated = false;
 
     // raw socket in/out
     private InputStream socketIn;
@@ -107,7 +104,6 @@ public class GMSSLSocket extends SSLSocket {
         connect(socketAddress, 0);
         ensureConnect();
         this.isConnected = true;
-        startHandshake();
     }
 
     public GMSSLSocket(GMSSLContextSpi context, InetAddress host, int port, InetAddress localAddress, int localPort) throws IOException {
@@ -122,7 +118,6 @@ public class GMSSLSocket extends SSLSocket {
         connect(socketAddress, 0);
         ensureConnect();
         this.isConnected = true;
-        startHandshake();
     }
 
     @Override
@@ -270,7 +265,7 @@ public class GMSSLSocket extends SSLSocket {
         // recive finished
         receiveFinished();
 
-        this.isNegotiated = true;
+        this.connection.isNegotiated = true;
     }
 
     private void receiveFinished() throws IOException {
@@ -503,5 +498,100 @@ public class GMSSLSocket extends SSLSocket {
         }
 
         return new AppDataInputStream(recordStream);
+    }
+
+    private class AppDataInputStream extends InputStream {
+
+        private RecordStream recordStream;
+        private byte[] cacheBuffer = null;
+        private int cachePos = 0;
+
+        public AppDataInputStream(RecordStream recordStream) {
+            this.recordStream = recordStream;
+        }
+
+        @Override
+        public int read() throws IOException {
+            byte[] buf = new byte[1];
+            int ret = read(buf, 0, 1);
+            return ret < 0 ? -1 : buf[0] & 0xFF;
+        }
+
+        @Override
+        public int read(byte[] b, int off, int len) throws IOException {
+            if (b == null) {
+                throw new NullPointerException("the target buffer is null");
+            }
+
+            if (len == 0) {
+                return 0;
+            }
+
+            if (!connection.isNegotiated) {
+                startHandshake();
+            }
+
+            int length;
+            if (cacheBuffer != null) {
+                length = Math.min(cacheBuffer.length - cachePos, len);
+                System.arraycopy(cacheBuffer, cachePos, b, off, length);
+
+                cachePos += length;
+                if (cachePos >= cacheBuffer.length) {
+                    cacheBuffer = null;
+                    cachePos = 0;
+                }
+            } else {
+                Record record = recordStream.read(true);
+                length = Math.min(record.fragment.length, len);
+                System.arraycopy(record.fragment, 0, b, off, length);
+                if (length < record.fragment.length) {
+                    cacheBuffer = record.fragment;
+                    cachePos = len;
+                }
+            }
+            return length;
+        }
+    }
+
+    private class AppDataOutputStream extends OutputStream {
+
+        private RecordStream recordStream;
+
+        public AppDataOutputStream(RecordStream recordStream) {
+            this.recordStream = recordStream;
+        }
+
+        @Override
+        public void write(int b) throws IOException {
+            write(new byte[] { (byte) b }, 0, 1);
+        }
+
+        @Override
+        public void write(byte b[], int off, int len) throws IOException {
+            if (b == null) {
+                throw new NullPointerException();
+            } else if ((off < 0) || (off > b.length) || (len < 0) || ((off + len) > b.length) || ((off + len) < 0)) {
+                throw new IndexOutOfBoundsException();
+            } else if (len == 0) {
+                return;
+            }
+
+            if (!connection.isNegotiated) {
+                startHandshake();
+            }
+
+            ProtocolVersion version = ProtocolVersion.NTLS_1_1;
+            byte[] content = new byte[len];
+            System.arraycopy(b, off, content, 0, len);
+            Record recored = new Record(ContentType.APPLICATION_DATA, version, content);
+            recordStream.write(recored, true);
+        }
+
+        @Override
+        public void flush() throws IOException {
+            recordStream.flush();
+        }
+
     }
 }
