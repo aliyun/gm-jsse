@@ -4,7 +4,7 @@ English | [简体中文](./README-CN.md)
 
 <p align="center">
 <a href="https://search.maven.org/search?q=g:%22com.aliyun%22%20AND%20a:%22gmsse%22"><img src="https://img.shields.io/maven-central/v/com.aliyun/gmsse.svg?label=Maven%20Central" alt="Latest Stable Version"/></a>
-<a href="https://travis-ci.org/aliyun/gm-jsse"><img src="https://travis-ci.org/aliyun/gm-jsse.svg?branch=master"/></a>
+<a href="https://github.com/aliyun/gm-jsse/actions/workflows/maven.yml"><img src="https://github.com/aliyun/gm-jsse/actions/workflows/maven.yml/badge.svg" alt="Java CI with Maven"/></a>
 <a href="https://ci.appveyor.com/project/JacksonTian/alibabacloud-gm-jsse/branch/master"><img src="https://ci.appveyor.com/api/projects/status/7xwn4tw8gcl86im5/branch/master?svg=true"/></a>
 <a href="https://codecov.io/gh/aliyun/gm-jsse"><img src="https://codecov.io/gh/aliyun/gm-jsse/branch/master/graph/badge.svg"/></a>
 </p>
@@ -56,7 +56,7 @@ public class Main {
 
 In the new version, GM-JSSE will verify server and CA certificates, if the CA root certificates are not imported in system, maybe have verfication errors. So you need add trust manager with CA certificates.
 
-```
+```java
     BouncyCastleProvider bc = new BouncyCastleProvider();
     KeyStore ks = KeyStore.getInstance("JKS");
     CertificateFactory cf = CertificateFactory.getInstance("X.509", bc);
@@ -73,12 +73,15 @@ In the new version, GM-JSSE will verify server and CA certificates, if the CA ro
 ```
 
 ## Issues
+
 [Opening an Issue](https://github.com/aliyun/gm-jsse/issues/new), Issues not conforming to the guidelines may be closed immediately.
 
 ## Changelog
+
 Detailed changes for each release are documented in the [release notes](./ChangeLog.txt).
 
 ## License
+
 [Apache-2.0](http://www.apache.org/licenses/LICENSE-2.0)
 
 Copyright (c) 2009-present, Alibaba Cloud All rights reserved.
