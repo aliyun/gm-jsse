@@ -22,5 +22,6 @@ public class ConnectionContext {
     public CipherSuite cipherSuite;
     public X509Certificate[] peerCerts;
     public GMSSLSession session;
+    public boolean isNegotiated = false;
 
 }
