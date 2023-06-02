@@ -44,15 +44,12 @@ public class GMSSLSocket extends SSLSocket {
     private final AppDataInputStream appInput = new AppDataInputStream();
     private final AppDataOutputStream appOutput = new AppDataOutputStream();
 
-    private ConnectionContext connection;
-
-    private SecurityParameters securityParameters = new SecurityParameters();
+    private final ConnectionContext connection;
     private final GMSSLContextSpi context;
-
 
     public GMSSLSocket(GMSSLContextSpi context, SSLConfiguration sslConfig) {
         this.context = context;
-        this.connection = new ConnectionContext(context, sslConfig);
+        this.connection = new ConnectionContext(context, this, sslConfig);
     }
 
     public GMSSLSocket(GMSSLContextSpi context, String host, int port) throws IOException {
@@ -61,7 +58,6 @@ public class GMSSLSocket extends SSLSocket {
         this.connection = new ConnectionContext(context, this, true);
         remoteHost = host;
         ensureConnect();
-        this.isConnected = true;
     }
 
     public GMSSLSocket(GMSSLContextSpi context, InetAddress host, int port) throws IOException {
@@ -73,7 +69,6 @@ public class GMSSLSocket extends SSLSocket {
         }
         this.connection = new ConnectionContext(context, this, true);
         ensureConnect();
-        this.isConnected = true;
     }
 
     public GMSSLSocket(GMSSLContextSpi context, Socket socket, String host, int port, boolean autoClose) throws IOException {
@@ -83,7 +78,6 @@ public class GMSSLSocket extends SSLSocket {
         this.context = context;
         this.connection = new ConnectionContext(context, this, true);
         ensureConnect();
-        this.isConnected = true;
     }
 
     public GMSSLSocket(GMSSLContextSpi context, String host, int port, InetAddress localAddr, int localPort) throws IOException {
@@ -95,7 +89,6 @@ public class GMSSLSocket extends SSLSocket {
         this.connection = new ConnectionContext(context, this, true);
         connect(socketAddress, 0);
         ensureConnect();
-        this.isConnected = true;
     }
 
     public GMSSLSocket(GMSSLContextSpi context, InetAddress host, int port, InetAddress localAddress, int localPort) throws IOException {
@@ -109,7 +102,6 @@ public class GMSSLSocket extends SSLSocket {
         this.connection = new ConnectionContext(context, this, true);
         connect(socketAddress, 0);
         ensureConnect();
-        this.isConnected = true;
     }
 
     @Override
@@ -225,6 +217,22 @@ public class GMSSLSocket extends SSLSocket {
         connection.kickstart();
     }
 
+    public String getPeerHost() {
+        return remoteHost;
+    }
+
+    public void doneConnect() throws IOException {
+        if (underlyingSocket != null) {
+            socketIn = underlyingSocket.getInputStream();
+            socketOut = underlyingSocket.getOutputStream();
+        } else {
+            socketIn = super.getInputStream();
+            socketOut = super.getOutputStream();
+        }
+        recordStream = new RecordStream(socketIn, socketOut);
+        this.isConnected = true;
+    }
+
     private void ensureConnect() throws IOException {
         if (underlyingSocket != null) {
             if (!underlyingSocket.isConnected()) {
@@ -236,15 +244,7 @@ public class GMSSLSocket extends SSLSocket {
                 connect(socketAddress);
             }
         }
-
-        if (underlyingSocket != null) {
-            socketIn = underlyingSocket.getInputStream();
-            socketOut = underlyingSocket.getOutputStream();
-        } else {
-            socketIn = super.getInputStream();
-            socketOut = super.getOutputStream();
-        }
-        recordStream = new RecordStream(socketIn, socketOut);
+        this.doneConnect();
     }
 
     @Override
@@ -359,9 +359,5 @@ public class GMSSLSocket extends SSLSocket {
             recordStream.flush();
         }
 
-    }
-
-    public String getPeerHost() {
-        return remoteHost;
     }
 }

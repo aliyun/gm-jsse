@@ -42,13 +42,10 @@ public class ConnectionContext {
         this.session = new GMSSLSession();
     }
 
-    public ConnectionContext(GMSSLContextSpi context) {
-        this(context, new SSLConfiguration(context, true));
-    }
-
-    public ConnectionContext(GMSSLContextSpi context, SSLConfiguration sslConfig) {
+    public ConnectionContext(GMSSLContextSpi context, GMSSLSocket socket, SSLConfiguration sslConfig) {
         this.sslContext = context;
         this.sslConfig = sslConfig;
+        this.socket = socket;
         this.session = new GMSSLSession();
     }
 
