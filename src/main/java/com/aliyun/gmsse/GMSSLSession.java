@@ -16,7 +16,7 @@ public class GMSSLSession implements SSLSession {
     public CipherSuite cipherSuite;
     ProtocolVersion protocol;
     SessionContext sessionContext;
-    ID sessionId;
+    public ID sessionId;
     public String peerHost;
     public int peerPort;
     public X509KeyManager keyManager;

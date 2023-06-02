@@ -24,8 +24,8 @@ public class CompressionMethod {
         }
     }
 
-    static final CompressionMethod NULL = new CompressionMethod(0);
-    static final CompressionMethod ZLIB = new CompressionMethod(1);
+    public static final CompressionMethod NULL = new CompressionMethod(0);
+    public static final CompressionMethod ZLIB = new CompressionMethod(1);
 
     public static CompressionMethod getInstance(int value) {
         switch (value) {
