@@ -13,7 +13,7 @@ public class AlertException extends SSLException {
     private Alert alert;
     private boolean isLocal;
 
-    AlertException(Alert alert, boolean isLocal) {
+    public AlertException(Alert alert, boolean isLocal) {
         super(alert.getDescription().toString());
         this.alert = alert;
         this.isLocal = isLocal;

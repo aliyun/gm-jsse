@@ -1,8 +1,8 @@
 package com.aliyun.gmsse;
 
 public class Record {
-    ContentType contentType;
-    ProtocolVersion version;
+    public ContentType contentType;
+    public ProtocolVersion version;
     public byte[] fragment;
 
     public Record(ContentType contentType, ProtocolVersion version, byte[] fragment) {

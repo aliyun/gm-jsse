@@ -1,6 +1,8 @@
 package com.aliyun.gmsse;
 
 import com.aliyun.gmsse.Record.ContentType;
+import com.aliyun.gmsse.protocol.ClientConnectionContext;
+import com.aliyun.gmsse.protocol.ServerConnectionContext;
 
 import javax.net.ssl.HandshakeCompletedListener;
 import javax.net.ssl.SSLSession;
@@ -45,13 +47,13 @@ public class GMSSLSocket extends SSLSocket {
 
     public GMSSLSocket(GMSSLContextSpi context, SSLConfiguration sslConfig) {
         this.context = context;
-        this.connection = new ConnectionContext(context, this, sslConfig);
+        this.connection = new ServerConnectionContext(context, this, sslConfig);
     }
 
     public GMSSLSocket(GMSSLContextSpi context, String host, int port) throws IOException {
         super(host, port);
         this.context = context;
-        this.connection = new ConnectionContext(context, this, true);
+        this.connection = new ClientConnectionContext(context, this);
         remoteHost = host;
         ensureConnect();
     }
@@ -63,7 +65,7 @@ public class GMSSLSocket extends SSLSocket {
         if (remoteHost == null) {
             remoteHost = host.getHostAddress();
         }
-        this.connection = new ConnectionContext(context, this, true);
+        this.connection = new ClientConnectionContext(context, this);
         ensureConnect();
     }
 
@@ -72,7 +74,7 @@ public class GMSSLSocket extends SSLSocket {
         remoteHost = host;
         this.autoClose = autoClose;
         this.context = context;
-        this.connection = new ConnectionContext(context, this, true);
+        this.connection = new ClientConnectionContext(context, this);
         ensureConnect();
     }
 
@@ -82,7 +84,7 @@ public class GMSSLSocket extends SSLSocket {
                new InetSocketAddress(InetAddress.getByName(null), port);
         remoteHost = host;
         this.context = context;
-        this.connection = new ConnectionContext(context, this, true);
+        this.connection = new ClientConnectionContext(context, this);
         connect(socketAddress, 0);
         ensureConnect();
     }
@@ -95,7 +97,7 @@ public class GMSSLSocket extends SSLSocket {
             remoteHost = host.getHostAddress();
         }
         this.context = context;
-        this.connection = new ConnectionContext(context, this, true);
+        this.connection = new ClientConnectionContext(context, this);
         connect(socketAddress, 0);
         ensureConnect();
     }
