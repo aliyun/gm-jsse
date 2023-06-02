@@ -16,9 +16,6 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
-import java.net.UnknownHostException;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,7 +28,6 @@ public class GMSSLSocket extends SSLSocket {
     int port;
     public SSLSessionContext sessionContext;
     private String remoteHost;
-    private boolean needAuthClient = false;
     private boolean clientMode = true;
     private Socket underlyingSocket;
     private boolean autoClose;

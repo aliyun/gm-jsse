@@ -13,6 +13,7 @@ import javax.net.ssl.SSLException;
 
 import org.bouncycastle.crypto.engines.SM4Engine;
 import org.bouncycastle.crypto.params.KeyParameter;
+import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
 
 import com.aliyun.gmsse.GMSSLSession.ID;
 import com.aliyun.gmsse.handshake.ClientHello;
@@ -136,30 +137,50 @@ public class ConnectionContext {
 
     private void sendClientKeyExchange() throws IOException {
         ProtocolVersion version = ProtocolVersion.NTLS_1_1;
-        ClientKeyExchange ckex = new ClientKeyExchange(version, sslContext.getSecureRandom(), securityParameters.encryptionCert);
+        // 计算 preMasterSecret
+        ByteArrayOutputStream ba = new ByteArrayOutputStream();
+        ba.write(version.getMajor());
+        ba.write(version.getMinor());
+        ba.write(sslContext.getSecureRandom().generateSeed(46));
+        byte[] preMasterSecret = ba.toByteArray();
+
+        // 计算 encryptedPreMasterSecret
+        byte[] encryptedPreMasterSecret;
+        try {
+            encryptedPreMasterSecret = Crypto.encrypt((BCECPublicKey) securityParameters.encryptionCert.getPublicKey(), preMasterSecret);
+        } catch (Exception ex) {
+            throw new RuntimeException(ex.getMessage(), ex);
+        }
+
+        ClientKeyExchange ckex = new ClientKeyExchange(encryptedPreMasterSecret);
         Handshake hs = new Handshake(Handshake.Type.CLIENT_KEY_EXCHANGE, ckex);
         Record rc = new Record(ContentType.HANDSHAKE, version, hs.getBytes());
         socket.recordStream.write(rc);
         handshakes.add(hs);
+
+        // 计算 masterSecret
+        byte[] MASTER_SECRET = "master secret".getBytes();
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        os.write(securityParameters.clientRandom);
+        os.write(securityParameters.serverRandom);
+        byte[] seed = os.toByteArray();
         try {
-            securityParameters.masterSecret = ckex.getMasterSecret(securityParameters.clientRandom,
-                    securityParameters.serverRandom);
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new SSLException("caculate master secret failed", e);
+            securityParameters.masterSecret = Crypto.prf(preMasterSecret, MASTER_SECRET, seed, preMasterSecret.length);
+        } catch (Exception ex) {
+            throw new SSLException("caculate master secret failed", ex);
         }
 
         // key_block = PRF(SecurityParameters.master_secret，"keyexpansion"，
         // SecurityParameters.server_random +SecurityParameters.client_random);
         // new TLSKeyMaterialSpec(masterSecret, TLSKeyMaterialSpec.KEY_EXPANSION,
         // key_block.length, server_random, client_random))
-        ByteArrayOutputStream os = new ByteArrayOutputStream();
-        os.write(securityParameters.serverRandom);
-        os.write(securityParameters.clientRandom);
-        byte[] seed = os.toByteArray();
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        baos.write(securityParameters.serverRandom);
+        baos.write(securityParameters.clientRandom);
+        byte[] keyBlockSeed = baos.toByteArray();
         byte[] keyBlock = null;
         try {
-            keyBlock = Crypto.prf(securityParameters.masterSecret, "key expansion".getBytes(), seed, 128);
+            keyBlock = Crypto.prf(securityParameters.masterSecret, "key expansion".getBytes(), keyBlockSeed, 128);
         } catch (Exception e) {
             throw new SSLException("caculate key block failed", e);
         }
