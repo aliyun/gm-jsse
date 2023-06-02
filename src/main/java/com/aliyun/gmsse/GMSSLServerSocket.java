@@ -113,8 +113,9 @@ public class GMSSLServerSocket extends SSLServerSocket {
 
     @Override
     public synchronized Socket accept() throws IOException {
-        Socket socket = new GMSSLSocket(context, sslConfig);
+        GMSSLSocket socket = new GMSSLSocket(context, sslConfig);
         implAccept(socket);
+        socket.doneConnect();
         return socket;
     }
 }

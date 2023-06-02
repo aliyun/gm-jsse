@@ -118,20 +118,24 @@ public class ClientHello extends Handshake.Body {
     }
 
     public static Body read(InputStream input) throws IOException {
-        int sessionIdLength = input.read() & 0xFF;
-        byte[] sessionId = new byte[sessionIdLength];
-        input.read(sessionId, 0, sessionIdLength);
-        int gmtUnixTime =  (input.read() << 24 & 0xFF) + (input.read() << 16 & 0xFF) + (input.read() << 8 & 0xFF) + input.read() & 0xFF;
+        // version
+        int major = input.read() & 0xFF;
+        int minor = input.read() & 0xFF;
+        ProtocolVersion version = ProtocolVersion.getInstance(major, minor);
+
+        int gmtUnixTime = ((input.read() << 24) & 0xFF) + ((input.read() << 16) & 0xFF) + ((input.read() << 8) & 0xFF) + input.read() & 0xFF;
         byte[] randomBytes = new byte[28];
         input.read(randomBytes, 0, 28);
         ClientRandom random = new ClientRandom(gmtUnixTime, randomBytes);
+
+        // session id 由服务端决定，因此不存在
 
         int suiteSize =  (input.read() << 16 & 0xFF) + (input.read() << 8 & 0xFF) + input.read() & 0xFF;
         List<CipherSuite> suites = new ArrayList<CipherSuite>();
         for (int i = 0; i < suiteSize / 4; i++) {
             int id1 = input.read();
             int id2 = input.read();
-            int size = input.read() << 8 & 0xFF + input.read();
+            int size = (input.read() << 8) & 0xFF + input.read();
             suites.add(new CipherSuite(null, null, null, null, size, id1, id2, null, ProtocolVersion.NTLS_1_1));
         }
 
@@ -140,7 +144,7 @@ public class ClientHello extends Handshake.Body {
         for (int i = 0; i < compressionLength; i++) {
             compressions.add(CompressionMethod.getInstance(input.read() & 0xFF));
         }
-        ProtocolVersion version = ProtocolVersion.NTLS_1_1;
-        return new ClientHello(version, random, sessionId, suites, compressions);
+
+        return new ClientHello(version, random, null, suites, compressions);
     }
 }
