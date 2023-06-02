@@ -123,7 +123,7 @@ public class ClientHello extends Handshake.Body {
         int minor = input.read() & 0xFF;
         ProtocolVersion version = ProtocolVersion.getInstance(major, minor);
 
-        int gmtUnixTime = ((input.read() << 24) & 0xFF) + ((input.read() << 16) & 0xFF) + ((input.read() << 8) & 0xFF) + input.read() & 0xFF;
+        int gmtUnixTime = (input.read() & 0xFF) << 24 | (input.read() & 0xFF) << 16| (input.read() & 0xFF) << 8 | input.read() & 0xFF;
         byte[] randomBytes = new byte[28];
         input.read(randomBytes, 0, 28);
         ClientRandom random = new ClientRandom(gmtUnixTime, randomBytes);

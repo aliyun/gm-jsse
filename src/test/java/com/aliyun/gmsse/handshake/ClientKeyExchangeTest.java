@@ -4,35 +4,15 @@ import com.aliyun.gmsse.ProtocolVersion;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.security.SecureRandom;
 
 public class ClientKeyExchangeTest {
 
     @Test
-    public void getMasterSecretTest() throws Exception {
-        SecureRandom random = new SecureRandom();
-        ProtocolVersion pv = ProtocolVersion.NTLS_1_1;
-        ClientKeyExchange clientKeyExchange = new ClientKeyExchange(pv, random, ServerKeyExchangeTest.cert);
-        byte[] para = new byte[]{32};
-        byte[] bytes = clientKeyExchange.getMasterSecret(para, para);
-        Assert.assertEquals(48, bytes.length);
-    }
-
-    @Test
-    public void getPreMasterSecretTest() throws Exception {
-        SecureRandom random = new SecureRandom();
-        ProtocolVersion pv = ProtocolVersion.NTLS_1_1;
-        ClientKeyExchange clientKeyExchange = new ClientKeyExchange(pv, random, ServerKeyExchangeTest.cert);
-
-        byte[] bytes = clientKeyExchange.getPreMasterSecret();
-        Assert.assertEquals(48, bytes.length);
-    }
-
-    @Test
     public void toStringTest() throws Exception {
-        SecureRandom random = new SecureRandom();
-        ProtocolVersion pv = ProtocolVersion.NTLS_1_1;
-        ClientKeyExchange clientKeyExchange = new ClientKeyExchange(pv, random, ServerKeyExchangeTest.cert);
+        ClientKeyExchange clientKeyExchange = new ClientKeyExchange("encryptedPreMasterSecret".getBytes());
         String str = clientKeyExchange.toString();
         Assert.assertTrue(str.contains("struct {"));
         Assert.assertTrue(str.contains("encryptedPreMasterSecret ="));
@@ -41,10 +21,12 @@ public class ClientKeyExchangeTest {
 
     @Test
     public void getBytesTest() throws Exception {
-        SecureRandom random = new SecureRandom();
-        ClientKeyExchange clientKeyExchange = new ClientKeyExchange(ProtocolVersion.NTLS_1_1, random, ServerKeyExchangeTest.cert);
+        ClientKeyExchange clientKeyExchange = new ClientKeyExchange("encryptedPreMasterSecret".getBytes());
         byte[] bytes = clientKeyExchange.getBytes();
-        Assert.assertEquals(157, bytes.length);
-        Assert.assertNull(ClientKeyExchange.read(null));
+        Assert.assertEquals(26, bytes.length);
+        ByteArrayInputStream is = new ByteArrayInputStream(bytes);
+        ClientKeyExchange cke = (ClientKeyExchange)ClientKeyExchange.read(is);
+        Assert.assertNotNull(cke);
+        Assert.assertArrayEquals("encryptedPreMasterSecret".getBytes(), cke.getEncryptedPreMasterSecret());
     }
 }
