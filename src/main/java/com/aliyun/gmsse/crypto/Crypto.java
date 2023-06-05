@@ -8,7 +8,6 @@ import java.security.SecureRandom;
 
 import javax.crypto.ShortBufferException;
 
-import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1EncodableVector;
 import org.bouncycastle.asn1.ASN1Integer;
 import org.bouncycastle.asn1.ASN1Object;
@@ -77,11 +76,15 @@ public class Crypto {
 
     public static byte[] decrypt(BCECPrivateKey key, byte[] encryptedPreMasterSecret) throws IOException, InvalidCipherTextException {
         DLSequence seq = (DLSequence)ASN1Primitive.fromByteArray(encryptedPreMasterSecret);
-        byte[] c1x = seq.getObjectAt(0).toASN1Primitive().getEncoded();
         ASN1Integer c1xAsn1Integer = (ASN1Integer)seq.getObjectAt(0);
-        byte[] c1y = seq.getObjectAt(1).toASN1Primitive().getEncoded();
-        byte[] c3 = seq.getObjectAt(2).toASN1Primitive().getEncoded();
-        byte[] c2 = seq.getObjectAt(3).toASN1Primitive().getEncoded();
+        byte[] c1x = c1xAsn1Integer.getValue().toByteArray();
+        ASN1Integer c1yAsn1Integer = (ASN1Integer)seq.getObjectAt(1);
+        byte[] c1y = c1yAsn1Integer.getValue().toByteArray();
+        DEROctetString c3DEROctetString = (DEROctetString)seq.getObjectAt(2);
+        byte[] c3 = c3DEROctetString.getOctets();
+        DEROctetString c2DEROctetString = (DEROctetString)seq.getObjectAt(3);
+        byte[] c2 = c2DEROctetString.getOctets();
+
         ByteArrayOutputStream os = new ByteArrayOutputStream();
         os.write(0x04);
         os.write(c1x);

@@ -71,7 +71,6 @@ public class CryptoTest {
     }
 
     @Test
-    @Ignore
     public void testEncryptAndDecrypt() throws Exception{
         X509Certificate cert = loadX509Certificate("sm2/server_enc.crt");
         ByteArrayOutputStream ba = new ByteArrayOutputStream();
@@ -79,8 +78,9 @@ public class CryptoTest {
         ba.write(1);
         ba.write(random.generateSeed(46));
         byte[] preMasterSecret = ba.toByteArray();
+        Assert.assertEquals(48, preMasterSecret.length);
         byte[] encryptedPreMasterSecret = Crypto.encrypt((BCECPublicKey)cert.getPublicKey(), preMasterSecret);
-
+        Assert.assertEquals(155, encryptedPreMasterSecret.length);
         PrivateKey key = loadPrivateKey("sm2/server_enc.key");
 
         byte[] decryptedPreMasterSecret = Crypto.decrypt((BCECPrivateKey)key, encryptedPreMasterSecret);
