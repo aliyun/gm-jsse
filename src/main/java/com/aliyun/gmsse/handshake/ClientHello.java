@@ -135,7 +135,7 @@ public class ClientHello extends Handshake.Body {
         for (int i = 0; i < suiteSize / 4; i++) {
             int id1 = input.read();
             int id2 = input.read();
-            int size = (input.read() << 8) & 0xFF + input.read();
+            int size = (input.read() & 0xFF) << 8 | input.read();
             suites.add(new CipherSuite(null, null, null, null, size, id1, id2, null, ProtocolVersion.NTLS_1_1));
         }
 
