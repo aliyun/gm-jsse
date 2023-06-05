@@ -24,6 +24,7 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
+import javax.net.ssl.TrustManagerFactory;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
@@ -31,7 +32,7 @@ import com.aliyun.gmsse.GMProvider;
 
 public class Server {
 
-    public X509Certificate loadCertificate(String path) throws KeyStoreException, CertificateException, FileNotFoundException {
+    public static X509Certificate loadCertificate(String path) throws KeyStoreException, CertificateException, FileNotFoundException {
         BouncyCastleProvider bc = new BouncyCastleProvider();
         CertificateFactory cf = CertificateFactory.getInstance("X.509", bc);
         InputStream is = Server.class.getClassLoader().getResourceAsStream(path);
@@ -39,7 +40,7 @@ public class Server {
         return cert;
     }
 
-    public PrivateKey loadPrivateKey(String path) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
+    public static PrivateKey loadPrivateKey(String path) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException {
         InputStream is = Server.class.getClassLoader().getResourceAsStream(path);
         InputStreamReader inputStreamReader = new InputStreamReader(is);
         BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
@@ -77,10 +78,16 @@ public class Server {
         KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
         kmf.init(ks, new char[0]);
 
-        sc.init(kmf.getKeyManagers(), null, null);
+        X509Certificate cert = loadCertificate("sm2/chain-ca.crt");
+        ks.setCertificateEntry("ca", cert);
+
+        TrustManagerFactory tmf = TrustManagerFactory.getInstance("X509", provider);
+        tmf.init(ks);
+
+        sc.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
         SSLServerSocketFactory ssf = sc.getServerSocketFactory();
         SSLServerSocket ss = (SSLServerSocket) ssf.createServerSocket(8443);
-        // ss.setNeedClientAuth(true);
+        ss.setNeedClientAuth(true);
         // ss.setEnabledProtocols(new String[] { "TLSv1.2" });
         return ss;
     }

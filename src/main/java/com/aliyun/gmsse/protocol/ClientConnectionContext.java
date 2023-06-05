@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import javax.net.ssl.SSLException;
+import javax.net.ssl.X509KeyManager;
 
 import org.bouncycastle.crypto.engines.SM4Engine;
 import org.bouncycastle.crypto.params.KeyParameter;
@@ -17,6 +18,7 @@ import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
 
 import com.aliyun.gmsse.AlertException;
 import com.aliyun.gmsse.CipherSuite;
+import com.aliyun.gmsse.ClientAuthType;
 import com.aliyun.gmsse.ClientRandom;
 import com.aliyun.gmsse.CompressionMethod;
 import com.aliyun.gmsse.ConnectionContext;
@@ -27,6 +29,7 @@ import com.aliyun.gmsse.ProtocolVersion;
 import com.aliyun.gmsse.Record;
 import com.aliyun.gmsse.SSLConfiguration;
 import com.aliyun.gmsse.SecurityParameters;
+import com.aliyun.gmsse.Util;
 import com.aliyun.gmsse.GMSSLSession.ID;
 import com.aliyun.gmsse.handshake.ClientHello;
 import com.aliyun.gmsse.record.Handshake;
@@ -74,11 +77,36 @@ public class ClientConnectionContext extends ConnectionContext {
         // recive ServerKeyExchange
         receiveServerKeyExchange();
 
-        // recive ServerHello
-        receiveServerHelloDone();
+        Record rc = socket.recordStream.read();
+        if (rc.contentType != Record.ContentType.HANDSHAKE) {
+            Alert alert = new Alert(Alert.Level.FATAL, Alert.Description.UNEXPECTED_MESSAGE);
+            throw new AlertException(alert, true);
+        }
+
+        Handshake cf = Handshake.read(new ByteArrayInputStream(rc.fragment));
+        handshakes.add(cf);
+        if (cf.type == Handshake.Type.CERTIFICATE_REQUEST) {
+            this.sslConfig.clientAuthType = ClientAuthType.CLIENT_AUTH_REQUESTED;
+
+            // recive ServerHelloDone
+            receiveServerHelloDone();
+        } else if (cf.type == Handshake.Type.SERVER_HELLO_DONE) {
+            // recive ServerHelloDone
+            // nothing to do
+        }
+
+        if (this.sslConfig.clientAuthType == ClientAuthType.CLIENT_AUTH_REQUESTED) {
+            // send Certificate
+            sendClientCertificate();
+        }
 
         // send ClientKeyExchange
         sendClientKeyExchange();
+
+        if (this.sslConfig.clientAuthType == ClientAuthType.CLIENT_AUTH_REQUESTED) {
+            // send CertificateVerify
+            sendCertificateVerify();
+        }
 
         // send ChangeCipherSpec
         sendChangeCipherSpec();
@@ -153,9 +181,14 @@ public class ClientConnectionContext extends ConnectionContext {
         socket.recordStream.write(rc);
     }
 
-    private void sendCertificateVerify(List<Handshake> handshakes) throws IOException {
+    private void sendCertificateVerify() throws IOException {
         ProtocolVersion version = ProtocolVersion.NTLS_1_1;
-        CertificateVerify cv = new CertificateVerify(handshakes);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        for (Handshake handshake : handshakes) {
+            out.write(handshake.getBytes());
+        }
+        byte[] signature = Crypto.hash(out.toByteArray());
+        CertificateVerify cv = new CertificateVerify(signature);
         Handshake hs = new Handshake(Handshake.Type.CERTIFICATE_VERIFY, cv);
         Record rc = new Record(ContentType.HANDSHAKE, version, hs.getBytes());
         socket.recordStream.write(rc);
@@ -256,10 +289,16 @@ public class ClientConnectionContext extends ConnectionContext {
 
     private void sendClientCertificate() throws IOException {
         ProtocolVersion version = ProtocolVersion.NTLS_1_1;
-        X509Certificate[] certs = session.keyManager.getCertificateChain(socket.getPeerHost());
-        Certificate cert = new Certificate(certs);
+        X509KeyManager km = sslContext.getKeyManager();
+        X509Certificate[] signCerts = km.getCertificateChain("sign");
+        X509Certificate[] encCerts = km.getCertificateChain("enc");
+        Certificate cert = new Certificate(new X509Certificate[] {
+            signCerts[0],
+            encCerts[0]
+        });
         Handshake hs = new Handshake(Handshake.Type.CERTIFICATE, cert);
         Record rc = new Record(ContentType.HANDSHAKE, version, hs.getBytes());
+        handshakes.add(hs);
         socket.recordStream.write(rc);
     }
 

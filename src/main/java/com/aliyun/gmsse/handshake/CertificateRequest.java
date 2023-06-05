@@ -1,7 +1,9 @@
 package com.aliyun.gmsse.handshake;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Iterator;
 import java.util.Vector;
 
 import com.aliyun.gmsse.record.Handshake;
@@ -19,7 +21,35 @@ public class CertificateRequest extends Handshake.Body {
 
     @Override
     public byte[] getBytes() throws IOException {
-        return null;
+        ByteArrayOutputStream ba = new ByteArrayOutputStream();
+        // write type length
+        int length = this.certificateAuthorities.size();
+        ba.write(length);
+        // write types
+        for (int i = 0; i < length; i++) {
+            ba.write(this.certificateTypes[i]);
+        }
+
+        // write ca length
+        Iterator<byte[]> it = this.certificateAuthorities.iterator();
+        int casLength = 0;
+        while (it.hasNext()) {
+            byte[] ca = it.next();
+            casLength += ca.length + 2;
+        }
+
+        ba.write(casLength >>> 8 & 0xFF);
+        ba.write(casLength & 0xFF);
+
+        Iterator<byte[]> it2 = this.certificateAuthorities.iterator();
+        while (it2.hasNext()) {
+            byte[] ca = it2.next();
+            ba.write(ca.length >>> 8 & 0xFF);
+            ba.write(ca.length & 0xFF);
+            ba.write(ca);
+        }
+
+        return ba.toByteArray();
     }
 
     public static CertificateRequest read(InputStream input) throws IOException {
