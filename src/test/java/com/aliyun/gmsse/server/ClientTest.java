@@ -2,8 +2,6 @@ package com.aliyun.gmsse.server;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.Socket;
-import java.net.URL;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -12,14 +10,12 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 
-import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.junit.Assert;
 
 import com.aliyun.gmsse.GMProvider;
 

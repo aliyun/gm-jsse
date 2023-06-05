@@ -1,12 +1,9 @@
 package com.aliyun.gmsse.handshake;
 
-import com.aliyun.gmsse.ProtocolVersion;
 import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.security.SecureRandom;
 
 public class ClientKeyExchangeTest {
 

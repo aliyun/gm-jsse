@@ -40,6 +40,7 @@ public class CertificateTest {
                 "    test" + newLine +
                 "} Certificate;" + newLine, str);
     }
+
     @Test
     public void getTest() throws Exception {
         X509Certificate test = Mockito.mock(X509Certificate.class);
