@@ -1,5 +1,6 @@
 package com.aliyun.gmsse.crypto;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -10,9 +11,11 @@ import javax.crypto.ShortBufferException;
 import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1EncodableVector;
 import org.bouncycastle.asn1.ASN1Integer;
+import org.bouncycastle.asn1.ASN1Object;
 import org.bouncycastle.asn1.ASN1Primitive;
 import org.bouncycastle.asn1.DEROctetString;
 import org.bouncycastle.asn1.DERSequence;
+import org.bouncycastle.asn1.DLSequence;
 import org.bouncycastle.asn1.gm.GMNamedCurves;
 import org.bouncycastle.asn1.x9.X9ECParameters;
 import org.bouncycastle.crypto.Digest;
@@ -42,7 +45,7 @@ public class Crypto {
         byte[] c1c3c2 = sm2Engine.processBlock(preMasterSecret, 0, preMasterSecret.length);
 
         final int c1Len = (x9ECParameters.getCurve().getFieldSize() + 7) / 8 * 2 + 1; // sm2p256v1的这个固定65。可看GMNamedCurves、ECCurve代码。
-        final int c3Len = 32; // new SM3Digest().getDigestSize();
+        final int c3Len = 32;
         byte[] c1x = new byte[32];
         // 第一个字节为固定的 0x04
         System.arraycopy(c1c3c2, 1, c1x, 0, 32); // c1x
@@ -72,43 +75,28 @@ public class Crypto {
         return seq.getEncoded();
     }
 
-    public static byte[] decrypt(BCECPrivateKey key, byte[] encryptedPreMasterSecret) throws IOException {
-        DERSequence seq = (DERSequence)DERSequence.fromByteArray(encryptedPreMasterSecret);
+    public static byte[] decrypt(BCECPrivateKey key, byte[] encryptedPreMasterSecret) throws IOException, InvalidCipherTextException {
+        DLSequence seq = (DLSequence)ASN1Primitive.fromByteArray(encryptedPreMasterSecret);
         byte[] c1x = seq.getObjectAt(0).toASN1Primitive().getEncoded();
+        ASN1Integer c1xAsn1Integer = (ASN1Integer)seq.getObjectAt(0);
         byte[] c1y = seq.getObjectAt(1).toASN1Primitive().getEncoded();
         byte[] c3 = seq.getObjectAt(2).toASN1Primitive().getEncoded();
         byte[] c2 = seq.getObjectAt(3).toASN1Primitive().getEncoded();
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        os.write(0x04);
+        os.write(c1x);
+        os.write(c1y);
+        os.write(c3);
+        os.write(c2);
+        byte[] pms = os.toByteArray();
 
-        // SM2Engine sm2Engine = new SM2Engine(SM2Engine.Mode.C1C3C2);
+        SM2Engine sm2Engine = new SM2Engine(SM2Engine.Mode.C1C3C2);
 
-        // ECDomainParameters domainParams = new ECDomainParameters(x9ECParameters.getCurve(), key.getD(), SM2_ECC_N);
-        // ECKeyGenerationParameters params = new ECKeyGenerationParameters(domainParams, new SecureRandom());
-        // params.getRandom();
-        // ECPrivateKeyParameters cipherParams = new ECPrivateKeyParameters(d, params);
-        // sm2Engine.init(false, cipherParams);
+        ECPrivateKeyParameters cipherParams = new ECPrivateKeyParameters(key.getS(), ecDomainParameters);
+        sm2Engine.init(false, cipherParams);
 
-        // byte[] c1c3c2 = sm2Engine.processBlock(preMasterSecret, 0, preMasterSecret.length);
-
-        // final int c1Len = (x9ECParameters.getCurve().getFieldSize() + 7) / 8 * 2 + 1; // sm2p256v1的这个固定65。可看GMNamedCurves、ECCurve代码。
-        // final int c3Len = 32; // new SM3Digest().getDigestSize();
-        // byte[] c1x = new byte[32];
-        // // 第一个字节为固定的 0x04
-        // System.arraycopy(c1c3c2, 1, c1x, 0, 32); // c1x
-        // byte[] c1y = new byte[32];
-        // System.arraycopy(c1c3c2, c1x.length + 1, c1y, 0, 32); // c1y
-
-        // // 32 字节的签名
-        // byte[] c3 = new byte[c3Len];
-        // System.arraycopy(c1c3c2, c1Len, c3, 0, c3Len); // c3
-
-        // // 被加密的字节，长度与加密前的字节一致
-        // int c2len = c1c3c2.length - c1Len - c3Len;
-        // byte[] c2 = new byte[c2len];
-        // System.arraycopy(c1c3c2, c1Len + c3Len, c2, 0, c2len); // c2
-
-        // // 重新编码为 ASN1 格式
-        // return encode(c1x, c1y, c3, c2);
-        return new byte[10];
+        byte[] decrypted = sm2Engine.processBlock(pms, 0, pms.length);
+        return decrypted;
     }
 
     public static byte[] decode(byte[] c1x, byte[] c1y, byte[] c3, byte[] c2) throws IOException {
