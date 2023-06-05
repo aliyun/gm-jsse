@@ -39,8 +39,8 @@ public class RecordStreamTest {
         FileOutputStream outputStream = new FileOutputStream(path);
         RecordStream recordStream = Mockito.spy(new RecordStream(inputStream, outputStream));
         byte[] bytes = "test-test-test-test-test-test-test-test-test-test-test-test-test-test".getBytes("UTF-8");
-        recordStream.setServerWriteIV(new byte[16]);
-        recordStream.setServerMacKey(new byte[]{11});
+        recordStream.setDecryptIV(new byte[16]);
+        recordStream.setDecryptMacKey(new byte[]{11});
         SM4Engine sm4Engine = Mockito.mock(SM4Engine.class);
         Mockito.when(sm4Engine.processBlock(new byte[1], 0, new byte[1], 0)).thenReturn(1);
         recordStream.setReadCipher(sm4Engine);
@@ -61,8 +61,8 @@ public class RecordStreamTest {
         byte[] bytes = "test-test-test-test-test-test-test-test-test-test-test-test-test-test".getBytes("UTF-8");
         SM4Engine sm4Engine = Mockito.mock(SM4Engine.class);
         Mockito.when(sm4Engine.processBlock(new byte[1], 0, new byte[1], 0)).thenReturn(1);
-        recordStream.setClientMacKey(bytes);
-        recordStream.setClientWriteIV(bytes);
+        recordStream.setEncryptMacKey(bytes);
+        recordStream.setEncryptIV(bytes);
         recordStream.setWriteCipher(sm4Engine);
         Record record = new Record(Record.ContentType.ALERT, ProtocolVersion.NTLS_1_1, "test".getBytes("UTF-8"));
         record = recordStream.encrypt(record);

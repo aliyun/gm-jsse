@@ -85,11 +85,22 @@ public class ServerTest {
         SSLServerSocket ss = (SSLServerSocket) ssf.createServerSocket(8443);
         // ss.setNeedClientAuth(true);
         // ss.setEnabledProtocols(new String[] { "TLSv1.2" });
-        SSLSocket socket = (SSLSocket) ss.accept();
-        // InputStream and OutputStream Stuff
-        socket.getOutputStream().write("Hello".getBytes());
-        socket.getOutputStream().flush();
-        socket.close();
+        while (true) {
+            SSLSocket socket = (SSLSocket) ss.accept();
+            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            String inputLine, outputLine;
+            // KnockKnockProtocol kkp = new KnockKnockProtocol();
+            // outputLine = kkp.processInput(null);
+            // out.println(outputLine);
+
+            while ((inputLine = in.readLine()) != null) {
+                // outputLine = kkp.processInput(inputLine);
+                out.println(inputLine);
+                if (inputLine.equals("Bye."))
+                    break;
+            }
+        }
     }
 
 }

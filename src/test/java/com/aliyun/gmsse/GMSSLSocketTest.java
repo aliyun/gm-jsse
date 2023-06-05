@@ -297,54 +297,6 @@ public class GMSSLSocketTest {
 
     @Test
     @Ignore
-    public void sendClientKeyExchangeTest() throws Exception {
-        GMSSLSocket gmsslSocket = new GMSSLSocket(getSSLContext(), "www.aliyun.com", 80);
-        Method sendClientKeyExchange = GMSSLSocket.class.getDeclaredMethod("sendClientKeyExchange");
-        sendClientKeyExchange.setAccessible(true);
-
-        byte[] bytes = new byte[]{1};
-        GMSSLSession gmsslSession = new GMSSLSession(null, null);
-        SecureRandom secureRandom = Mockito.mock(SecureRandom.class);
-        Mockito.when(secureRandom.generateSeed(46)).thenReturn(bytes);
-        gmsslSession.random = secureRandom;
-        Field session = gmsslSocket.getClass().getDeclaredField("session");
-        session.setAccessible(true);
-        session.set(gmsslSocket, gmsslSession);
-
-        byte[] keyBlock = new byte[200];
-        PowerMockito.mockStatic(Crypto.class);
-        PowerMockito.when(Crypto.prf(Mockito.any(byte[].class), Mockito.any(byte[].class), Mockito.any(byte[].class),
-                Mockito.any(int.class))).thenReturn(keyBlock);
-        PowerMockito.when(Crypto.encrypt(Mockito.any(BCECPublicKey.class), Mockito.any(byte[].class))).thenReturn(bytes);
-
-        SecurityParameters securityParameters = new SecurityParameters();
-        securityParameters.serverRandom = bytes;
-        securityParameters.clientRandom = bytes;
-        X509Certificate x509Certificate = Mockito.mock(X509Certificate.class);
-        BCECPublicKey bcecPublicKey = Mockito.mock(BCECPublicKey.class);
-        Mockito.when(x509Certificate.getPublicKey()).thenReturn(bcecPublicKey);
-        securityParameters.encryptionCert = x509Certificate;
-        Field securityParametersField = GMSSLSocket.class.getDeclaredField("securityParameters");
-        securityParametersField.setAccessible(true);
-        securityParametersField.set(gmsslSocket, securityParameters);
-
-        RecordStream recordStream = Mockito.mock(RecordStream.class);
-        Mockito.doNothing().when(recordStream).write(Mockito.any(Record.class));
-        Field recordStreamField = GMSSLSocket.class.getDeclaredField("recordStream");
-        recordStreamField.setAccessible(true);
-        recordStreamField.set(gmsslSocket, recordStream);
-
-        sendClientKeyExchange.invoke(gmsslSocket);
-        Mockito.verify(recordStream, Mockito.times(1)).setClientMacKey(Mockito.any(byte[].class));
-        Mockito.verify(recordStream, Mockito.times(1)).setServerMacKey(Mockito.any(byte[].class));
-        Mockito.verify(recordStream, Mockito.times(1)).setWriteCipher(Mockito.any(SM4Engine.class));
-        Mockito.verify(recordStream, Mockito.times(1)).setReadCipher(Mockito.any(SM4Engine.class));
-        Mockito.verify(recordStream, Mockito.times(1)).setClientWriteIV(Mockito.any(byte[].class));
-        Mockito.verify(recordStream, Mockito.times(1)).setServerWriteIV(Mockito.any(byte[].class));
-    }
-
-    @Test
-    @Ignore
     public void receiveFinishedTest() throws Exception {
         GMSSLSocket gmsslSocket = new GMSSLSocket(getSSLContext(), "www.aliyun.com", 80);
         Method receiveFinished = GMSSLSocket.class.getDeclaredMethod("receiveFinished");

@@ -2,6 +2,7 @@ package com.aliyun.gmsse.server;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.Socket;
 import java.net.URL;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
@@ -13,6 +14,7 @@ import java.security.cert.X509Certificate;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocket;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
 
@@ -23,7 +25,7 @@ import com.aliyun.gmsse.GMProvider;
 
 public class ClientTest {
 
-    public static void main(String[] args)  throws NoSuchAlgorithmException, KeyStoreException, CertificateException, IOException, KeyManagementException {
+    public static void main(String[] args)  throws NoSuchAlgorithmException, KeyStoreException, CertificateException, IOException, KeyManagementException, InterruptedException {
         GMProvider provider = new GMProvider();
         SSLContext sc = SSLContext.getInstance("TLS", provider);
 
@@ -40,13 +42,19 @@ public class ClientTest {
         sc.init(null, tmf.getTrustManagers(), null);
         SSLSocketFactory ssf = sc.getSocketFactory();
 
-        URL serverUrl = new URL("https://localhost:8443/");
-        HttpsURLConnection conn = (HttpsURLConnection) serverUrl.openConnection();
-        conn.setRequestMethod("GET");
-        // set SSLSocketFactory
-        conn.setSSLSocketFactory(ssf);
-        conn.connect();
-        Assert.assertEquals(200, conn.getResponseCode());
-        Assert.assertEquals("ECC-SM2-WITH-SM4-SM3", conn.getCipherSuite());
+        SSLSocket socket = (SSLSocket)ssf.createSocket("localhost", 8443);
+        socket.getOutputStream().write("hello world!".getBytes());
+        Thread.sleep(1000);
+        // socket.getOutputStream().close();
+        // socket.getInputStream(). write("hello world!".getBytes());
+        // URL serverUrl = new URL("https://localhost:8443/");
+
+        // HttpsURLConnection conn = (HttpsURLConnection) serverUrl.openConnection();
+        // conn.setRequestMethod("GET");
+        // // set SSLSocketFactory
+        // conn.setSSLSocketFactory(ssf);
+        // conn.connect();
+        // Assert.assertEquals(200, conn.getResponseCode());
+        // Assert.assertEquals("ECC-SM2-WITH-SM4-SM3", conn.getCipherSuite());
     }
 }
