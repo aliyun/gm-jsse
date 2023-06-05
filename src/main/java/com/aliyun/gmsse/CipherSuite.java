@@ -13,6 +13,8 @@ final public class CipherSuite {
     public static final CipherSuite NTLS_SM2_WITH_SM4_SM3 = new CipherSuite("ECC", "SM2", "SM4", "SM3", 128, 0xe0, 0x13,
             "ECC-SM2-WITH-SM4-SM3", ProtocolVersion.NTLS_1_1);
 
+    public static final CipherSuite[] all = new CipherSuite[] {NTLS_SM2_WITH_SM4_SM3};
+
     private String name;
     private byte[] id;
     private int keyLength;
@@ -98,8 +100,6 @@ final public class CipherSuite {
 
             boolean found = false;
 
-            List<CipherSuite> all = new ArrayList<>();
-            all.add(NTLS_SM2_WITH_SM4_SM3);
             for (CipherSuite cs : all) {
                 if (!cs.supportedProtocols.isEmpty()) {
                     if (cs.name.equals(name)) {

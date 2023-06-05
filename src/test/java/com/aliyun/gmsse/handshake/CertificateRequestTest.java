@@ -1,8 +1,5 @@
 package com.aliyun.gmsse.handshake;
 
-import java.io.ByteArrayInputStream;
-import java.io.EOFException;
-import java.io.InputStream;
 import java.util.Vector;
 
 import org.junit.Assert;

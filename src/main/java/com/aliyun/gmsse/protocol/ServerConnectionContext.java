@@ -13,11 +13,9 @@ import java.util.List;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.X509KeyManager;
 
-import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.bouncycastle.crypto.engines.SM4Engine;
 import org.bouncycastle.crypto.params.KeyParameter;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
-import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
 import org.bouncycastle.jcajce.spec.SM2ParameterSpec;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
@@ -27,13 +25,11 @@ import com.aliyun.gmsse.ClientRandom;
 import com.aliyun.gmsse.CompressionMethod;
 import com.aliyun.gmsse.ConnectionContext;
 import com.aliyun.gmsse.GMSSLContextSpi;
-import com.aliyun.gmsse.GMSSLSession;
 import com.aliyun.gmsse.GMSSLSocket;
 import com.aliyun.gmsse.ProtocolVersion;
 import com.aliyun.gmsse.Record;
 import com.aliyun.gmsse.SSLConfiguration;
 import com.aliyun.gmsse.SecurityParameters;
-import com.aliyun.gmsse.Util;
 import com.aliyun.gmsse.GMSSLSession.ID;
 import com.aliyun.gmsse.handshake.ClientHello;
 import com.aliyun.gmsse.record.Handshake;

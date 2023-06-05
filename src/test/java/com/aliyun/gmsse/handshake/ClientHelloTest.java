@@ -9,11 +9,9 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Arrays;
 
 public class ClientHelloTest {
 
@@ -98,5 +96,19 @@ public class ClientHelloTest {
         List<CompressionMethod> cms = ch.getCompressionMethods();
         CompressionMethod cm = cms.get(0);
         Assert.assertEquals(CompressionMethod.NULL, cm);
+    }
+
+    @Test
+    public void getterSetterTest() throws Exception{
+        List<CipherSuite> suites = new ArrayList<CipherSuite>();
+        suites.add(CipherSuite.NTLS_SM2_WITH_SM4_SM3);
+        List<CompressionMethod> methods = new ArrayList<CompressionMethod>();
+        methods.add(CompressionMethod.NULL);
+        SecureRandom random = new SecureRandom();
+        ClientRandom clientRandom = new ClientRandom(1685950254, random.generateSeed(28));
+        ClientHello clientHello = new ClientHello(ProtocolVersion.NTLS_1_1, clientRandom, null, suites, methods);
+        Assert.assertEquals(ProtocolVersion.NTLS_1_1, clientHello.getProtocolVersion());
+        Assert.assertEquals(clientRandom, clientHello.getClientRandom());
+        Assert.assertNull(clientHello.getSessionId());
     }
 }

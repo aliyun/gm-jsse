@@ -21,7 +21,6 @@ import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class CryptoTest {
@@ -56,6 +55,11 @@ public class CryptoTest {
         KeyFactory keyFactory = KeyFactory.getInstance("EC", new BouncyCastleProvider());
         PrivateKey privateKey = keyFactory.generatePrivate(eks2);
         return privateKey;
+    }
+
+    @Test
+    public void testCrypto() throws Exception{
+        Assert.assertNotNull(new Crypto());
     }
 
     @Test
