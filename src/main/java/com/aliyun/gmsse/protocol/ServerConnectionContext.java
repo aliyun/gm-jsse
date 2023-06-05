@@ -5,14 +5,18 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.security.PrivateKey;
 import java.security.Signature;
+import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Vector;
 
 import javax.net.ssl.SSLException;
 import javax.net.ssl.X509KeyManager;
+import javax.security.auth.x500.X500Principal;
 
+import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.crypto.engines.SM4Engine;
 import org.bouncycastle.crypto.params.KeyParameter;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
@@ -21,6 +25,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import com.aliyun.gmsse.AlertException;
 import com.aliyun.gmsse.CipherSuite;
+import com.aliyun.gmsse.ClientCertificateType;
 import com.aliyun.gmsse.ClientRandom;
 import com.aliyun.gmsse.CompressionMethod;
 import com.aliyun.gmsse.ConnectionContext;
@@ -30,12 +35,14 @@ import com.aliyun.gmsse.ProtocolVersion;
 import com.aliyun.gmsse.Record;
 import com.aliyun.gmsse.SSLConfiguration;
 import com.aliyun.gmsse.SecurityParameters;
+import com.aliyun.gmsse.Util;
 import com.aliyun.gmsse.GMSSLSession.ID;
 import com.aliyun.gmsse.handshake.ClientHello;
 import com.aliyun.gmsse.record.Handshake;
 import com.aliyun.gmsse.Record.ContentType;
 import com.aliyun.gmsse.crypto.Crypto;
 import com.aliyun.gmsse.handshake.Certificate;
+import com.aliyun.gmsse.handshake.CertificateRequest;
 import com.aliyun.gmsse.handshake.CertificateVerify;
 import com.aliyun.gmsse.handshake.ClientKeyExchange;
 import com.aliyun.gmsse.handshake.Finished;
@@ -78,11 +85,26 @@ public class ServerConnectionContext extends ConnectionContext {
         // send ServerKeyExchange
         sendServerKeyExchange();
 
+        if (this.socket.getNeedClientAuth()) {
+            // send CertificateRequest
+            sendCertificateRequest();
+        }
+
         // recive ServerHelloDone
         sendServerHelloDone();
 
+        if (this.socket.getNeedClientAuth()) {
+            // recive CertificateRequest
+            receiveClientCertificate();
+        }
+
         // recive ClientKeyExchange
         receiveClientKeyExchange();
+
+        if (this.socket.getNeedClientAuth()) {
+            // recive CertificateVerify
+            receiveCertificateVerify();
+        }
 
         // recive ChangeCipherSpec
         receiveChangeCipherSpec();
@@ -97,6 +119,60 @@ public class ServerConnectionContext extends ConnectionContext {
         sendFinished();
 
         this.isNegotiated = true;
+    }
+
+    private void receiveCertificateVerify() throws IOException {
+        Record rc = socket.recordStream.read();
+        Handshake cf = Handshake.read(new ByteArrayInputStream(rc.fragment));
+        CertificateVerify cv = (CertificateVerify) cf.body;
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        for (Handshake handshake : handshakes) {
+            out.write(handshake.getBytes());
+        }
+        byte[] signature = Crypto.hash(out.toByteArray());
+        if (!Arrays.equals(signature, cv.getSignature())) {
+            throw new SSLException("certificate verify failed");
+        }
+        handshakes.add(cf);
+    }
+
+    private void receiveClientCertificate() throws IOException {
+        Record rc = socket.recordStream.read();
+        Handshake cf = Handshake.read(new ByteArrayInputStream(rc.fragment));
+        Certificate cert = (Certificate) cf.body;
+        X509Certificate[] peerCerts = cert.getCertificates();
+        try {
+            sslContext.getTrustManager().checkServerTrusted(peerCerts, session.cipherSuite.getAuthType());
+        } catch (CertificateException e) {
+            throw new SSLException("could not verify peer certificate!", e);
+        }
+        session.peerCerts = peerCerts;
+        session.peerVerified = true;
+        handshakes.add(cf);
+    }
+
+    private void sendCertificateRequest() throws IOException {
+        ProtocolVersion version = ProtocolVersion.NTLS_1_1;
+        short[] certificateTypes = new short[]{
+            ClientCertificateType.ecdsa_sign,
+            ClientCertificateType.rsa_sign,
+            ClientCertificateType.ibc_params
+        };
+        List<X500Principal> caSubjects = new ArrayList<X500Principal>();
+        for (X509Certificate issuer : sslContext.getTrustManager().getAcceptedIssuers()) {
+            caSubjects.add(issuer.getSubjectX500Principal());
+        }
+
+        Vector<byte[]> certificateAuthorities = new Vector<byte[]>(caSubjects.size());
+        for (X500Principal caSubject : caSubjects) {
+            certificateAuthorities.add(caSubject.getEncoded());
+        }
+
+        CertificateRequest cr = new CertificateRequest(certificateTypes, certificateAuthorities);
+        Handshake hs = new Handshake(Handshake.Type.CERTIFICATE_REQUEST, cr);
+        Record rc = new Record(Record.ContentType.HANDSHAKE, version, hs.getBytes());
+        socket.recordStream.write(rc);
+        handshakes.add(hs);
     }
 
     private void receiveClientKeyExchange() throws IOException {
@@ -255,7 +331,9 @@ public class ServerConnectionContext extends ConnectionContext {
         sslContext.getSecureRandom().nextBytes(sessionId);
 
         CompressionMethod method = CompressionMethod.NULL;
-        ServerHello sh = new ServerHello(version, random.getBytes(), sessionId, CipherSuite.NTLS_SM2_WITH_SM4_SM3, method);
+        CipherSuite cs = CipherSuite.NTLS_SM2_WITH_SM4_SM3;
+        session.cipherSuite = cs;
+        ServerHello sh = new ServerHello(version, random.getBytes(), sessionId, cs, method);
         securityParameters.serverRandom = sh.getRandom();
         Handshake hs = new Handshake(Handshake.Type.SERVER_HELLO, sh);
         Record rc = new Record(Record.ContentType.HANDSHAKE, version, hs.getBytes());

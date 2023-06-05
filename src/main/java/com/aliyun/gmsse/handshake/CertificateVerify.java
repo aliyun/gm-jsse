@@ -3,7 +3,6 @@ package com.aliyun.gmsse.handshake;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.List;
 
 import com.aliyun.gmsse.record.Handshake;
 import com.aliyun.gmsse.record.Handshake.Body;
@@ -12,12 +11,15 @@ public class CertificateVerify  extends Handshake.Body{
 
     private byte[] signature;
 
-    public CertificateVerify(List<Handshake> handshakes) {
-
+    public CertificateVerify(byte[] signature) {
+        this.signature = signature;
     }
 
-    public static Body read(InputStream input) {
-        return null;
+    public static Body read(InputStream input) throws IOException {
+        int length = (input.read() & 0xFF) << 8 | input.read() & 0xFF;
+        byte[] signature = new byte[length];
+        input.read(signature, 0, length);
+        return new CertificateVerify(signature);
     }
 
     @Override
@@ -30,4 +32,7 @@ public class CertificateVerify  extends Handshake.Body{
         return os.toByteArray();
     }
 
+    public byte[] getSignature() {
+        return signature;
+    }
 }

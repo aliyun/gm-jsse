@@ -20,6 +20,7 @@ import java.security.cert.X509Certificate;
 import java.security.spec.InvalidKeySpecException;
 
 import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSocket;
@@ -80,17 +81,26 @@ public class ClientTest {
         Thread thread = new Thread(runner, "server");
         thread.start();
         Thread.sleep(1000);
-        BouncyCastleProvider bc = new BouncyCastleProvider();
-        KeyStore ks = KeyStore.getInstance("JKS");
-        CertificateFactory cf = CertificateFactory.getInstance("X.509", bc);
-        InputStream is = ClientTest.class.getClassLoader().getResourceAsStream("sm2/chain-ca.crt");
-        X509Certificate cert = (X509Certificate) cf.generateCertificate(is);
+
+        KeyStore ks = KeyStore.getInstance("PKCS12", new BouncyCastleProvider());
         ks.load(null, null);
-        ks.setCertificateEntry("gmca", cert);
+
+        ks.setKeyEntry("sign", Server.loadPrivateKey("sm2/server_sign.key"), new char[0], new X509Certificate[] {
+            Server.loadCertificate("sm2/server_sign.crt")
+        });
+        ks.setKeyEntry("enc", Server.loadPrivateKey("sm2/server_enc.key"), new char[0], new X509Certificate[] {
+            Server.loadCertificate("sm2/server_enc.crt")
+        });
+
+        KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
+        kmf.init(ks, new char[0]);
+
+        ks.setCertificateEntry("gmca", Server.loadCertificate("sm2/chain-ca.crt"));
 
         TrustManagerFactory tmf = TrustManagerFactory.getInstance("X509", provider);
         tmf.init(ks);
-        sc.init(null, tmf.getTrustManagers(), null);
+
+        sc.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
         SSLSocketFactory ssf = sc.getSocketFactory();
 
         URI uri = new URI("https://localhost:8443/");
