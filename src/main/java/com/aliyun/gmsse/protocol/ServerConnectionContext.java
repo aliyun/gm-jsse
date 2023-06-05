@@ -13,8 +13,10 @@ import java.util.List;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.X509KeyManager;
 
+import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.bouncycastle.crypto.engines.SM4Engine;
 import org.bouncycastle.crypto.params.KeyParameter;
+import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
 import org.bouncycastle.jcajce.spec.SM2ParameterSpec;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -48,10 +50,8 @@ import com.aliyun.gmsse.record.ChangeCipherSpec;
 
 public class ServerConnectionContext extends ConnectionContext {
 
-    private GMSSLContextSpi sslContext;
     private SecurityParameters securityParameters = new SecurityParameters();
     List<Handshake> handshakes = new ArrayList<Handshake>();
-    private GMSSLSocket socket;
 
     public ServerConnectionContext(GMSSLContextSpi context, GMSSLSocket socket) {
         super(context, socket, new SSLConfiguration(context, false));
@@ -61,14 +61,12 @@ public class ServerConnectionContext extends ConnectionContext {
         super(context, socket, sslConfig);
     }
 
-    public SSLConfiguration sslConfig;
     public ID sessionId;
     public int peerPort;
     public boolean peerVerified;
     public String peerHost;
     public CipherSuite cipherSuite;
     public X509Certificate[] peerCerts;
-    public GMSSLSession session;
     public boolean isNegotiated = false;
 
     public void kickstart() throws IOException {
@@ -112,80 +110,87 @@ public class ServerConnectionContext extends ConnectionContext {
 
         Handshake hsf = Handshake.read(new ByteArrayInputStream(rc.fragment));
         ClientKeyExchange che = (ClientKeyExchange) hsf.body;
-
         handshakes.add(hsf);
 
-        // byte[] encryptedPreMasterSecret = che.getEncryptedPreMasterSecret();
+        // 取出加密的 pre_master_secret
+        byte[] encryptedPreMasterSecret = che.getEncryptedPreMasterSecret();
+        PrivateKey key = sslContext.getKeyManager().getPrivateKey("enc");
 
-        // PrivateKey key = sslContext.getKeyManager().getPrivateKey("enc");
+        // 通过加密私钥解密 pre_master_secret
+        byte[] preMasterSecret;
+        try {
+            preMasterSecret = Crypto.decrypt((BCECPrivateKey)key, encryptedPreMasterSecret);
+        } catch (Exception e) {
+            throw new SSLException("decrypt pre master secret failed", e);
+        }
 
-        // // 计算 masterSecret
-        // byte[] MASTER_SECRET = "master secret".getBytes();
-        // ByteArrayOutputStream os = new ByteArrayOutputStream();
-        // os.write(securityParameters.clientRandom);
-        // os.write(securityParameters.serverRandom);
-        // byte[] seed = os.toByteArray();
-        // try {
-        //     securityParameters.masterSecret = Crypto.prf(preMasterSecret, MASTER_SECRET, seed, preMasterSecret.length);
-        // } catch (Exception ex) {
-        //     throw new SSLException("caculate master secret failed", ex);
-        // }
+        // 计算 masterSecret
+        byte[] MASTER_SECRET = "master secret".getBytes();
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        os.write(securityParameters.clientRandom);
+        os.write(securityParameters.serverRandom);
+        byte[] seed = os.toByteArray();
+        try {
+            securityParameters.masterSecret = Crypto.prf(preMasterSecret, MASTER_SECRET, seed, preMasterSecret.length);
+        } catch (Exception ex) {
+            throw new SSLException("caculate master secret failed", ex);
+        }
 
-        // // key_block = PRF(SecurityParameters.master_secret，"keyexpansion"，
-        // // SecurityParameters.server_random +SecurityParameters.client_random);
-        // // new TLSKeyMaterialSpec(masterSecret, TLSKeyMaterialSpec.KEY_EXPANSION,
-        // // key_block.length, server_random, client_random))
-        // ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        // baos.write(securityParameters.serverRandom);
-        // baos.write(securityParameters.clientRandom);
-        // byte[] keyBlockSeed = baos.toByteArray();
-        // byte[] keyBlock = null;
-        // try {
-        //     keyBlock = Crypto.prf(securityParameters.masterSecret, "key expansion".getBytes(), keyBlockSeed, 128);
-        // } catch (Exception e) {
-        //     throw new SSLException("caculate key block failed", e);
-        // }
+        // key_block = PRF(SecurityParameters.master_secret，"keyexpansion"，
+        // SecurityParameters.server_random +SecurityParameters.client_random);
+        // new TLSKeyMaterialSpec(masterSecret, TLSKeyMaterialSpec.KEY_EXPANSION,
+        // key_block.length, server_random, client_random))
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        baos.write(securityParameters.serverRandom);
+        baos.write(securityParameters.clientRandom);
+        byte[] keyBlockSeed = baos.toByteArray();
+        byte[] keyBlock = null;
+        try {
+            keyBlock = Crypto.prf(securityParameters.masterSecret, "key expansion".getBytes(), keyBlockSeed, 128);
+        } catch (Exception e) {
+            throw new SSLException("caculate key block failed", e);
+        }
 
-        // // client_write_MAC_secret[SecurityParameters.hash_size]
-        // // server_write_MAC_secret[SecurityParameters.hash_size]
-        // // client_write_key[SecurityParameters.key_material_length]
-        // // server_write_key[SecurityParameters.key_material_length]
-        // // clientWriteIV
-        // // serverWriteIV
+        // client_write_MAC_secret[SecurityParameters.hash_size]
+        // server_write_MAC_secret[SecurityParameters.hash_size]
+        // client_write_key[SecurityParameters.key_material_length]
+        // server_write_key[SecurityParameters.key_material_length]
+        // clientWriteIV
+        // serverWriteIV
 
-        // // client mac key
-        // byte[] clientMacKey = new byte[32];
-        // System.arraycopy(keyBlock, 0, clientMacKey, 0, 32);
-        // socket.recordStream.setClientMacKey(clientMacKey);
+        // client mac key
+        byte[] clientMacKey = new byte[32];
+        System.arraycopy(keyBlock, 0, clientMacKey, 0, 32);
+        socket.recordStream.setClientMacKey(clientMacKey);
 
-        // // server mac key
-        // byte[] serverMacKey = new byte[32];
-        // System.arraycopy(keyBlock, 32, serverMacKey, 0, 32);
-        // socket.recordStream.setServerMacKey(serverMacKey);
+        // server mac key
+        byte[] serverMacKey = new byte[32];
+        System.arraycopy(keyBlock, 32, serverMacKey, 0, 32);
+        socket.recordStream.setServerMacKey(serverMacKey);
 
-        // // client write key
-        // byte[] clientWriteKey = new byte[16];
-        // System.arraycopy(keyBlock, 64, clientWriteKey, 0, 16);
-        // SM4Engine writeCipher = new SM4Engine();
-        // writeCipher.init(true, new KeyParameter(clientWriteKey));
-        // socket.recordStream.setWriteCipher(writeCipher);
+        // client write key
+        byte[] clientWriteKey = new byte[16];
+        System.arraycopy(keyBlock, 64, clientWriteKey, 0, 16);
+        SM4Engine writeCipher = new SM4Engine();
+        writeCipher.init(true, new KeyParameter(clientWriteKey));
+        socket.recordStream.setWriteCipher(writeCipher);
 
-        // // server write key
-        // byte[] serverWriteKey = new byte[16];
-        // System.arraycopy(keyBlock, 80, serverWriteKey, 0, 16);
-        // SM4Engine readCipher = new SM4Engine();
-        // readCipher.init(false, new KeyParameter(serverWriteKey));
-        // socket.recordStream.setReadCipher(readCipher);
+        // server write key
+        byte[] serverWriteKey = new byte[16];
+        System.arraycopy(keyBlock, 80, serverWriteKey, 0, 16);
+        SM4Engine readCipher = new SM4Engine();
+        readCipher.init(false, new KeyParameter(serverWriteKey));
+        socket.recordStream.setReadCipher(readCipher);
 
-        // // client write iv
-        // byte[] clientWriteIV = new byte[16];
-        // System.arraycopy(keyBlock, 96, clientWriteIV, 0, 16);
-        // socket.recordStream.setClientWriteIV(clientWriteIV);
+        // client write iv
+        byte[] clientWriteIV = new byte[16];
+        System.arraycopy(keyBlock, 96, clientWriteIV, 0, 16);
+        socket.recordStream.setClientWriteIV(clientWriteIV);
 
-        // // server write iv
-        // byte[] serverWriteIV = new byte[16];
-        // System.arraycopy(keyBlock, 112, serverWriteIV, 0, 16);
-        // socket.recordStream.setServerWriteIV(serverWriteIV);
+        // server write iv
+        byte[] serverWriteIV = new byte[16];
+        System.arraycopy(keyBlock, 112, serverWriteIV, 0, 16);
+        socket.recordStream.setServerWriteIV(serverWriteIV);
     }
 
     private void sendServerHelloDone() throws IOException {
@@ -284,7 +289,7 @@ public class ServerConnectionContext extends ConnectionContext {
         Record rc = socket.recordStream.read(true);
         Handshake hs = Handshake.read(new ByteArrayInputStream(rc.fragment));
         Finished finished = (Finished) hs.body;
-        Finished serverFinished = new Finished(securityParameters.masterSecret, "server finished", handshakes);
+        Finished serverFinished = new Finished(securityParameters.masterSecret, "client finished", handshakes);
         if (!Arrays.equals(finished.getBytes(), serverFinished.getBytes())) {
             Alert alert = new Alert(Alert.Level.FATAL, Alert.Description.HANDSHAKE_FAILURE);
             throw new AlertException(alert, true);
@@ -298,7 +303,7 @@ public class ServerConnectionContext extends ConnectionContext {
 
     private void sendFinished() throws IOException {
         ProtocolVersion version = ProtocolVersion.NTLS_1_1;
-        Finished finished = new Finished(securityParameters.masterSecret, "client finished", handshakes);
+        Finished finished = new Finished(securityParameters.masterSecret, "server finished", handshakes);
         Handshake hs = new Handshake(Handshake.Type.FINISHED, finished);
         Record rc = new Record(ContentType.HANDSHAKE, version, hs.getBytes());
         socket.recordStream.write(rc, true);
