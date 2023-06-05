@@ -8,8 +8,12 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Arrays;
 
 public class ClientHelloTest {
 
@@ -73,5 +77,26 @@ public class ClientHelloTest {
         Assert.assertEquals(101, bytes[10]);
         Assert.assertEquals(115, bytes[11]);
         Assert.assertEquals(116, bytes[12]);
+    }
+
+    @Test
+    public void readTest() throws Exception{
+        List<CipherSuite> suites = new ArrayList<CipherSuite>();
+        suites.add(CipherSuite.NTLS_SM2_WITH_SM4_SM3);
+        List<CompressionMethod> methods = new ArrayList<CompressionMethod>();
+        methods.add(CompressionMethod.NULL);
+        SecureRandom random = new SecureRandom();
+        ClientRandom clientRandom = new ClientRandom(1685950254, random.generateSeed(28));
+        ClientHello clientHello = new ClientHello(ProtocolVersion.NTLS_1_1, clientRandom, null, suites, methods);
+        ByteArrayInputStream os = new ByteArrayInputStream(clientHello.getBytes());
+        ClientHello ch = (ClientHello)ClientHello.read(os);
+        List<CipherSuite> css = ch.getCipherSuites();
+        CipherSuite cs = css.get(0);
+        Assert.assertEquals(128, cs.getKeyLength());
+        Assert.assertArrayEquals(new byte[] {(byte)0xe0, (byte)0x13}, cs.getId());
+
+        List<CompressionMethod> cms = ch.getCompressionMethods();
+        CompressionMethod cm = cms.get(0);
+        Assert.assertEquals(CompressionMethod.NULL, cm);
     }
 }

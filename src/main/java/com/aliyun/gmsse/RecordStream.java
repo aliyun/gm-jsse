@@ -25,12 +25,13 @@ public class RecordStream {
     private OutputStream output;
     private InputStream input;
 
-    private byte[] clientMacKey;
-    private byte[] serverMacKey;
     private SM4Engine writeCipher;
     private SM4Engine readCipher;
-    private byte[] clientWriteIV;
-    private byte[] serverWriteIV;
+
+    private byte[] encryptMacKey;
+    private byte[] encryptIV;
+    private byte[] decryptMacKey;
+    private byte[] decryptIV;
 
     private SequenceNumber readSeqNo = new SequenceNumber(), writeSeqNo = new SequenceNumber();
 
@@ -39,12 +40,12 @@ public class RecordStream {
         output = socketOut;
     }
 
-    public void setClientMacKey(byte[] key) {
-        this.clientMacKey = key;
+    public void setEncryptMacKey(byte[] key) {
+        this.encryptMacKey = key;
     }
 
-    public void setServerMacKey(byte[] key) {
-        this.serverMacKey = key;
+    public void setDecryptMacKey(byte[] key) {
+        this.decryptMacKey = key;
     }
 
     public void setWriteCipher(SM4Engine writeCipher) {
@@ -55,12 +56,12 @@ public class RecordStream {
         this.readCipher = readCipher;
     }
 
-    public void setClientWriteIV(byte[] clientWriteIV) {
-        this.clientWriteIV = clientWriteIV;
+    public void setEncryptIV(byte[] encryptIV) {
+        this.encryptIV = encryptIV;
     }
 
-    public void setServerWriteIV(byte[] serverWriteIV) {
-        this.serverWriteIV = serverWriteIV;
+    public void setDecryptIV(byte[] decryptIV) {
+        this.decryptIV = decryptIV;
     }
 
     public void write(Record record) throws IOException {
@@ -119,7 +120,7 @@ public class RecordStream {
     }
 
     public byte[] decrypt(Record record) throws IOException {
-        byte[] decrypted = decrypt(record.fragment, readCipher, serverWriteIV);
+        byte[] decrypted = decrypt(record.fragment, readCipher, decryptIV);
         // iv, content, mac, padding length, padding
         int paddingLength = decrypted[decrypted.length - 1];
         byte[] iv = new byte[16];
@@ -154,7 +155,7 @@ public class RecordStream {
         baos.write(content.length & 0xFF);
         // fragement
         baos.write(content);
-        byte[] mac = hmacHash(baos.toByteArray(), serverMacKey);
+        byte[] mac = hmacHash(baos.toByteArray(), decryptMacKey);
         if (!Arrays.equals(serverMac, mac)) {
             Alert alert = new Alert(Alert.Level.FATAL, Alert.Description.BAD_RECORD_MAC);
             throw new AlertException(alert, false);
@@ -188,17 +189,17 @@ public class RecordStream {
         // fragement
         baos.write(record.fragment);
         byte[] data = baos.toByteArray();
-        byte[] mac = hmacHash(data, clientMacKey);
+        byte[] mac = hmacHash(data, encryptMacKey);
 
         ByteArrayOutputStream block = new ByteArrayOutputStream();
         // iv
-        block.write(clientWriteIV);
+        block.write(encryptIV);
         // content
         block.write(record.fragment);
         // mac
         block.write(mac);
         // padding length, the 1 is "padding length" size
-        int total = clientWriteIV.length + record.fragment.length + mac.length + 1;
+        int total = encryptIV.length + record.fragment.length + mac.length + 1;
         int paddingLength = BLOCK_SIZE - total % BLOCK_SIZE;
         block.write(paddingLength);
         // padding
@@ -206,7 +207,7 @@ public class RecordStream {
             block.write(paddingLength);
         }
         // iv, content, mac, padding length, padding
-        byte[] encrypted = encrypt(block.toByteArray(), writeCipher, clientWriteIV);
+        byte[] encrypted = encrypt(block.toByteArray(), writeCipher, encryptIV);
         return new Record(record.contentType, record.version, encrypted);
     }
 

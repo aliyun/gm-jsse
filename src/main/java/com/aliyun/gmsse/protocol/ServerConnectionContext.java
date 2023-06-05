@@ -33,6 +33,7 @@ import com.aliyun.gmsse.ProtocolVersion;
 import com.aliyun.gmsse.Record;
 import com.aliyun.gmsse.SSLConfiguration;
 import com.aliyun.gmsse.SecurityParameters;
+import com.aliyun.gmsse.Util;
 import com.aliyun.gmsse.GMSSLSession.ID;
 import com.aliyun.gmsse.handshake.ClientHello;
 import com.aliyun.gmsse.record.Handshake;
@@ -99,6 +100,8 @@ public class ServerConnectionContext extends ConnectionContext {
 
         // send finished
         sendFinished();
+
+        this.isNegotiated = true;
     }
 
     private void receiveClientKeyExchange() throws IOException {
@@ -161,36 +164,36 @@ public class ServerConnectionContext extends ConnectionContext {
         // client mac key
         byte[] clientMacKey = new byte[32];
         System.arraycopy(keyBlock, 0, clientMacKey, 0, 32);
-        socket.recordStream.setClientMacKey(clientMacKey);
+        socket.recordStream.setDecryptMacKey(clientMacKey);
 
         // server mac key
         byte[] serverMacKey = new byte[32];
         System.arraycopy(keyBlock, 32, serverMacKey, 0, 32);
-        socket.recordStream.setServerMacKey(serverMacKey);
+        socket.recordStream.setEncryptMacKey(serverMacKey);
 
         // client write key
         byte[] clientWriteKey = new byte[16];
         System.arraycopy(keyBlock, 64, clientWriteKey, 0, 16);
-        SM4Engine writeCipher = new SM4Engine();
-        writeCipher.init(true, new KeyParameter(clientWriteKey));
-        socket.recordStream.setWriteCipher(writeCipher);
+        SM4Engine readCipher = new SM4Engine();
+        readCipher.init(false, new KeyParameter(clientWriteKey));
+        socket.recordStream.setReadCipher(readCipher);
 
         // server write key
         byte[] serverWriteKey = new byte[16];
         System.arraycopy(keyBlock, 80, serverWriteKey, 0, 16);
-        SM4Engine readCipher = new SM4Engine();
-        readCipher.init(false, new KeyParameter(serverWriteKey));
-        socket.recordStream.setReadCipher(readCipher);
+        SM4Engine writeCipher = new SM4Engine();
+        writeCipher.init(true, new KeyParameter(serverWriteKey));
+        socket.recordStream.setWriteCipher(writeCipher);
 
         // client write iv
         byte[] clientWriteIV = new byte[16];
         System.arraycopy(keyBlock, 96, clientWriteIV, 0, 16);
-        socket.recordStream.setClientWriteIV(clientWriteIV);
+        socket.recordStream.setDecryptIV(clientWriteIV);
 
         // server write iv
         byte[] serverWriteIV = new byte[16];
         System.arraycopy(keyBlock, 112, serverWriteIV, 0, 16);
-        socket.recordStream.setServerWriteIV(serverWriteIV);
+        socket.recordStream.setEncryptIV(serverWriteIV);
     }
 
     private void sendServerHelloDone() throws IOException {
@@ -272,8 +275,8 @@ public class ServerConnectionContext extends ConnectionContext {
             throw new AlertException(alert, true);
         }
 
-        Handshake hsf = Handshake.read(new ByteArrayInputStream(rc.fragment));
-        ClientHello ch = (ClientHello) hsf.body;
+        Handshake hs = Handshake.read(new ByteArrayInputStream(rc.fragment));
+        ClientHello ch = (ClientHello) hs.body;
 
         // TODO: check the version, cipher suite, compression methods
         ProtocolVersion version = ch.getProtocolVersion();
@@ -282,18 +285,33 @@ public class ServerConnectionContext extends ConnectionContext {
         ch.getSessionId();
 
         securityParameters.clientRandom = ch.getClientRandom().getBytes();
-        handshakes.add(hsf);
+        handshakes.add(hs);
     }
 
     private void receiveFinished() throws IOException {
         Record rc = socket.recordStream.read(true);
         Handshake hs = Handshake.read(new ByteArrayInputStream(rc.fragment));
         Finished finished = (Finished) hs.body;
-        Finished serverFinished = new Finished(securityParameters.masterSecret, "client finished", handshakes);
-        if (!Arrays.equals(finished.getBytes(), serverFinished.getBytes())) {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        for (Handshake handshake : handshakes) {
+            out.write(handshake.getBytes());
+        }
+        // SM3(handshake_mesages)
+        byte[] seed = Crypto.hash(out.toByteArray());
+        byte[] verifyData;
+        try {
+            // PRF(master_secret，finished_label，SM3(handshake_mesages))[0.11]
+            verifyData = Crypto.prf(securityParameters.masterSecret, "client finished".getBytes(), seed, 12);
+        } catch (Exception e) {
+            throw new SSLException("caculate verify data failed", e);
+        }
+
+        if (!Arrays.equals(finished.getBytes(), verifyData)) {
             Alert alert = new Alert(Alert.Level.FATAL, Alert.Description.HANDSHAKE_FAILURE);
             throw new AlertException(alert, true);
         }
+
+        handshakes.add(hs);
     }
 
     private void receiveChangeCipherSpec() throws IOException {
@@ -303,7 +321,21 @@ public class ServerConnectionContext extends ConnectionContext {
 
     private void sendFinished() throws IOException {
         ProtocolVersion version = ProtocolVersion.NTLS_1_1;
-        Finished finished = new Finished(securityParameters.masterSecret, "server finished", handshakes);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        for (Handshake handshake : handshakes) {
+            out.write(handshake.getBytes());
+        }
+        // SM3(handshake_mesages)
+        byte[] seed = Crypto.hash(out.toByteArray());
+        byte[] verifyData;
+        try {
+            // PRF(master_secret，finished_label，SM3(handshake_mesages))[0.11]
+            verifyData = Crypto.prf(securityParameters.masterSecret, "server finished".getBytes(), seed, 12);
+        } catch (Exception e) {
+            throw new SSLException("caculate verify data failed", e);
+        }
+
+        Finished finished = new Finished(verifyData);
         Handshake hs = new Handshake(Handshake.Type.FINISHED, finished);
         Record rc = new Record(ContentType.HANDSHAKE, version, hs.getBytes());
         socket.recordStream.write(rc, true);
