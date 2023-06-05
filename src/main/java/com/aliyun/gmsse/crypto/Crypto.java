@@ -10,7 +10,6 @@ import javax.crypto.ShortBufferException;
 
 import org.bouncycastle.asn1.ASN1EncodableVector;
 import org.bouncycastle.asn1.ASN1Integer;
-import org.bouncycastle.asn1.ASN1Object;
 import org.bouncycastle.asn1.ASN1Primitive;
 import org.bouncycastle.asn1.DEROctetString;
 import org.bouncycastle.asn1.DERSequence;
@@ -23,7 +22,6 @@ import org.bouncycastle.crypto.digests.SM3Digest;
 import org.bouncycastle.crypto.engines.SM2Engine;
 import org.bouncycastle.crypto.macs.HMac;
 import org.bouncycastle.crypto.params.ECDomainParameters;
-import org.bouncycastle.crypto.params.ECKeyGenerationParameters;
 import org.bouncycastle.crypto.params.ECPrivateKeyParameters;
 import org.bouncycastle.crypto.params.ECPublicKeyParameters;
 import org.bouncycastle.crypto.params.KeyParameter;
@@ -100,16 +98,6 @@ public class Crypto {
 
         byte[] decrypted = sm2Engine.processBlock(pms, 0, pms.length);
         return decrypted;
-    }
-
-    public static byte[] decode(byte[] c1x, byte[] c1y, byte[] c3, byte[] c2) throws IOException {
-        ASN1EncodableVector v = new ASN1EncodableVector();
-        v.add(new ASN1Integer(c1x));
-        v.add(new ASN1Integer(c1y));
-        v.add(new DEROctetString(c3));
-        v.add(new DEROctetString(c2));
-        DERSequence seq = new DERSequence(v);
-        return seq.getEncoded();
     }
 
     private static byte[] join(byte[] a, byte[] b) {
