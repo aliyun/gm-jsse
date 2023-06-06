@@ -11,9 +11,6 @@ public class GMProvider extends Provider {
         put("TrustManagerFactory.X509", GMX509TrustManagerFactory.class.getName());
     }
 
-    /**
-     *
-     */
     private static final long serialVersionUID = -8752236141095716196L;
-    public static final String PROVIDER_NAME = "GMProvider";
+    private static final String PROVIDER_NAME = "GMProvider";
 }

@@ -64,7 +64,6 @@ public class ServerConnectionContext extends ConnectionContext {
     public String peerHost;
     public CipherSuite cipherSuite;
     public X509Certificate[] peerCerts;
-    public boolean isNegotiated = false;
 
     public void kickstart() throws IOException {
         // recive ClientHello
