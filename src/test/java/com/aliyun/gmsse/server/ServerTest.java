@@ -1,10 +1,13 @@
 package com.aliyun.gmsse.server;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
@@ -62,6 +65,20 @@ public class ServerTest {
         return privateKey;
     }
 
+        /**
+     * Returns the path to the file obtained from
+     * parsing the HTML header.
+     */
+    private static void getPath(BufferedReader in)throws IOException
+    {
+        String line;
+        do {
+            line = in.readLine();
+            System.out.println(line);
+        } while ((line.length() != 0) &&
+                 (line.charAt(0) != '\r') && (line.charAt(0) != '\n'));
+    }
+
     public static void main(String[] args) throws NoSuchAlgorithmException, KeyStoreException, CertificateException, IOException, UnrecoverableKeyException, KeyManagementException, InvalidKeySpecException {
         GMProvider provider = new GMProvider();
         SSLContext sc = SSLContext.getInstance("TLS", provider);
@@ -86,19 +103,22 @@ public class ServerTest {
         // ss.setEnabledProtocols(new String[] { "TLSv1.2" });
         while (true) {
             SSLSocket socket = (SSLSocket) ss.accept();
-            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
-            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-            String inputLine, outputLine;
-            // KnockKnockProtocol kkp = new KnockKnockProtocol();
-            // outputLine = kkp.processInput(null);
-            // out.println(outputLine);
 
-            while ((inputLine = in.readLine()) != null) {
-                // outputLine = kkp.processInput(inputLine);
-                out.println(inputLine);
-                if (inputLine.equals("Bye."))
-                    break;
-            }
+            // get path to class file from header
+            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            getPath(in);
+
+            PrintWriter ps = new PrintWriter(socket.getOutputStream(),false);
+            String content = "<!DOCTYPE html>\r\n" + "Hi.\r\n";
+            int contentLength = content.getBytes().length;
+            ps.print("HTTP/1.1 200 OK\r\n");
+            ps.print("Content-Type: text/html\r\n");
+            ps.print("Connection: close\r\n");
+            ps.print("Content-Length:" + contentLength + "\r\n");
+            ps.print("\r\n");
+            ps.print(content);
+            ps.flush();
+            socket.close();
         }
     }
 

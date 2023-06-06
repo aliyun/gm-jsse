@@ -31,20 +31,18 @@ public class MainTest {
         GMProvider provider = new GMProvider();
         SSLContext sc = SSLContext.getInstance("TLS", provider);
 
+        // load CA
         BouncyCastleProvider bc = new BouncyCastleProvider();
-        KeyStore ks = KeyStore.getInstance("JKS");
         CertificateFactory cf = CertificateFactory.getInstance("X.509", bc);
         InputStream is = this.getClass().getClassLoader().getResourceAsStream("WoTrus-SM2.crt");
         X509Certificate cert = (X509Certificate) cf.generateCertificate(is);
+        KeyStore ks = KeyStore.getInstance("JKS");
         ks.load(null, null);
         ks.setCertificateEntry("gmca", cert);
 
+        // init trust manager factory
         TrustManagerFactory tmf = TrustManagerFactory.getInstance("X509", provider);
         tmf.init(ks);
-
-        // KeyStore ks = KeyStore.getInstance("JKS");
-        // FileInputStream is = new FileInputStream("");
-        // ks.load(is, null);
 
         KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
         kmf.init(ks, null);
@@ -57,9 +55,7 @@ public class MainTest {
         URL serverUrl = new URL("https://sm2only.ovssl.cn/");
         HttpsURLConnection conn = (HttpsURLConnection) serverUrl.openConnection();
         conn.setRequestMethod("GET");
-        // set SSLSocketFactory
         conn.setSSLSocketFactory(ssf);
-        conn.connect();
         Assert.assertEquals(200, conn.getResponseCode());
         Assert.assertEquals("ECC-SM2-WITH-SM4-SM3", conn.getCipherSuite());
         // 读取服务器端返回的内容
@@ -72,5 +68,6 @@ public class MainTest {
             buffer.append(line);
         }
         Assert.assertTrue(buffer.toString().contains("沃通"));
+        connInputStream.close();
     }
 }
