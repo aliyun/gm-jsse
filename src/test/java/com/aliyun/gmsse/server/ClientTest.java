@@ -34,14 +34,11 @@ import com.aliyun.gmsse.GMProvider;
 
 public class ClientTest {
 
-    public static Runnable runServer() {
+    public static Runnable runServer(final SSLServerSocket ss) {
         return new Runnable() {
             @Override
             public void run() {
                 try {
-                    Server server = new Server();
-                    SSLServerSocket ss = server.buildServerSocket();
-
                     SSLSocket socket = (SSLSocket) ss.accept();
 
                     // get path to class file from header
@@ -73,11 +70,13 @@ public class ClientTest {
 
     @Test
     public void testServer() throws NoSuchAlgorithmException, KeyStoreException, CertificateException,
-            IOException, KeyManagementException, InterruptedException, URISyntaxException {
+            IOException, KeyManagementException, InterruptedException, URISyntaxException, UnrecoverableKeyException, InvalidKeySpecException {
         GMProvider provider = new GMProvider();
         SSLContext sc = SSLContext.getInstance("TLS", provider);
 
-        Runnable runner = runServer();
+        Server server = new Server();
+        SSLServerSocket ss = server.buildServerSocket();
+        Runnable runner = runServer(ss);
         Thread thread = new Thread(runner, "server");
         thread.start();
         Thread.sleep(1000);
