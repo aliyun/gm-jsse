@@ -23,7 +23,7 @@ public class CertificateRequest extends Handshake.Body {
     public byte[] getBytes() throws IOException {
         ByteArrayOutputStream ba = new ByteArrayOutputStream();
         // write type length
-        int length = this.certificateAuthorities.size();
+        int length = this.certificateTypes.length;
         ba.write(length);
         // write types
         for (int i = 0; i < length; i++) {
