@@ -9,7 +9,7 @@ import java.util.List;
 final public class CipherSuite {
     private static final HashMap<String, CipherSuite> namesToSuites = new HashMap<String, CipherSuite>();
 
-    // ECC-SM2-WITH-SM4-SM3 0x0300E011
+    // ECC-SM2-WITH-SM4-SM3 0x0300E013
     public static final CipherSuite NTLS_SM2_WITH_SM4_SM3 = new CipherSuite("ECC", "SM2", "SM4", "SM3", 128, 0xe0, 0x13,
             "ECC-SM2-WITH-SM4-SM3", ProtocolVersion.NTLS_1_1);
 
