@@ -136,7 +136,7 @@ public class ServerConnectionContext extends ConnectionContext {
         Certificate cert = (Certificate) cf.body;
         X509Certificate[] peerCerts = cert.getCertificates();
         try {
-            sslContext.getTrustManager().checkServerTrusted(peerCerts, session.cipherSuite.getAuthType());
+            sslContext.getTrustManager().checkClientTrusted(peerCerts, session.cipherSuite.getAuthType());
         } catch (CertificateException e) {
             throw new SSLException("could not verify peer certificate!", e);
         }

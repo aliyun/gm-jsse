@@ -11,7 +11,6 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.UnrecoverableKeyException;
 
@@ -22,7 +21,6 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
 
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -33,10 +31,7 @@ public class MainTest {
         SSLContext sc = SSLContext.getInstance("TLS", provider);
 
         // load CA
-        BouncyCastleProvider bc = new BouncyCastleProvider();
-        CertificateFactory cf = CertificateFactory.getInstance("X.509", bc);
-        InputStream is = this.getClass().getClassLoader().getResourceAsStream("WoTrus-SM2.crt");
-        X509Certificate cert = (X509Certificate) cf.generateCertificate(is);
+        X509Certificate cert = Helper.loadCertificate("WoTrus-SM2.crt");
         KeyStore ks = KeyStore.getInstance("JKS");
         ks.load(null, null);
         ks.setCertificateEntry("gmca", cert);

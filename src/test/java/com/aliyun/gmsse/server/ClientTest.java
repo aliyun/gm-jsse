@@ -30,6 +30,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.aliyun.gmsse.GMProvider;
+import com.aliyun.gmsse.Helper;
 
 public class ClientTest {
 
@@ -83,17 +84,17 @@ public class ClientTest {
         KeyStore ks = KeyStore.getInstance("PKCS12", new BouncyCastleProvider());
         ks.load(null, null);
 
-        ks.setKeyEntry("sign", Server.loadPrivateKey("sm2/server_sign.key"), new char[0], new X509Certificate[] {
-            Server.loadCertificate("sm2/server_sign.crt")
+        ks.setKeyEntry("sign", Helper.loadPrivateKey("sm2/server_sign.key"), new char[0], new X509Certificate[] {
+            Helper.loadCertificate("sm2/server_sign.crt")
         });
-        ks.setKeyEntry("enc", Server.loadPrivateKey("sm2/server_enc.key"), new char[0], new X509Certificate[] {
-            Server.loadCertificate("sm2/server_enc.crt")
+        ks.setKeyEntry("enc", Helper.loadPrivateKey("sm2/server_enc.key"), new char[0], new X509Certificate[] {
+            Helper.loadCertificate("sm2/server_enc.crt")
         });
 
         KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
         kmf.init(ks, new char[0]);
 
-        ks.setCertificateEntry("gmca", Server.loadCertificate("sm2/chain-ca.crt"));
+        ks.setCertificateEntry("gmca", Helper.loadCertificate("sm2/chain-ca.crt"));
 
         TrustManagerFactory tmf = TrustManagerFactory.getInstance("X509", provider);
         tmf.init(ks);

@@ -4,19 +4,13 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
 
 
 public class GMSSLSocketTest {
 
-    public GMSSLContextSpi getSSLContext() throws NoSuchAlgorithmException, KeyManagementException {
-        return new GMSSLContextSpi();
-    }
-
     @Test
     public void getEnabledCipherSuitesTest() throws Exception {
-        GMSSLSocket sslSocket = new GMSSLSocket(getSSLContext(), "www.aliyun.com", 80);
+        GMSSLSocket sslSocket = new GMSSLSocket(new GMSSLContextSpi(), "www.aliyun.com", 80);
         String[] strings = sslSocket.getEnabledCipherSuites();
         Assert.assertEquals("ECC-SM2-WITH-SM4-SM3", strings[0]);
         sslSocket.close();
@@ -24,7 +18,7 @@ public class GMSSLSocketTest {
 
     @Test
     public void getTest() throws Exception {
-        GMSSLSocket sslSocket = new GMSSLSocket(getSSLContext(), "www.aliyun.com", 80);
+        GMSSLSocket sslSocket = new GMSSLSocket(new GMSSLContextSpi(), "www.aliyun.com", 80);
 
         sslSocket.setEnableSessionCreation(false);
         Assert.assertFalse(sslSocket.getEnableSessionCreation());
@@ -57,7 +51,7 @@ public class GMSSLSocketTest {
 
     @Test
     public void setEnabledProtocolsTest() throws Exception {
-        GMSSLSocket sslSocket = new GMSSLSocket(getSSLContext(), "www.aliyun.com", 80);
+        GMSSLSocket sslSocket = new GMSSLSocket(new GMSSLContextSpi(), "www.aliyun.com", 80);
         try {
             sslSocket.setEnabledProtocols(null);
             Assert.fail();
@@ -86,7 +80,7 @@ public class GMSSLSocketTest {
 
     @Test
     public void setEnabledCipherSuitesTest() throws Exception {
-        GMSSLSocket sslSocket = new GMSSLSocket(getSSLContext(), "www.aliyun.com", 80);
+        GMSSLSocket sslSocket = new GMSSLSocket(new GMSSLContextSpi(), "www.aliyun.com", 80);
 
         try {
             sslSocket.setEnabledCipherSuites(null);
@@ -123,7 +117,7 @@ public class GMSSLSocketTest {
 
     @Test
     public void getOutputStreamTest() throws Exception {
-        GMSSLSocket gmsslSocket = new GMSSLSocket(getSSLContext(), "www.aliyun.com", 80);
+        GMSSLSocket gmsslSocket = new GMSSLSocket(new GMSSLContextSpi(), "www.aliyun.com", 80);
         Assert.assertNotNull(gmsslSocket.getOutputStream());
         gmsslSocket.close();
     }

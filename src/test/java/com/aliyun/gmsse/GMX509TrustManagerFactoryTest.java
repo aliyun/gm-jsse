@@ -50,6 +50,18 @@ public class GMX509TrustManagerFactoryTest {
     }
 
     @Test
+    public void initWithNoKeyStoreTest() throws NoSuchAlgorithmException, KeyStoreException, CertificateException, IOException {
+        TrustManagerFactory fact = TrustManagerFactory.getInstance("X509", new GMProvider());
+        // KeyStore 为空，从系统获取
+        fact.init((KeyStore)null);
+        TrustManager[] tms = fact.getTrustManagers();
+        Assert.assertEquals(1, tms.length);
+        X509TrustManager tm = (X509TrustManager)tms[0];
+        X509Certificate[] issuers = tm.getAcceptedIssuers();
+        Assert.assertTrue(issuers.length > 0);
+    }
+
+    @Test
     public void initWithNoCertTest() throws NoSuchAlgorithmException, KeyStoreException, CertificateException, IOException {
         KeyStore ks = KeyStore.getInstance("JKS");
         ks.load(null, null);
@@ -61,5 +73,34 @@ public class GMX509TrustManagerFactoryTest {
         X509TrustManager tm = (X509TrustManager)tms[0];
         X509Certificate[] issuers = tm.getAcceptedIssuers();
         Assert.assertEquals(0, issuers.length);
+        try {
+            tm.checkServerTrusted(new X509Certificate[] {
+                Helper.loadCertificate("sm2/server_sign.crt"),
+                Helper.loadCertificate("sm2/server_enc.crt")
+            }, null);
+            Assert.fail();
+        } catch (Exception ex) {
+            Assert.assertEquals("no trust anchors", ex.getMessage());
+        }
+    }
+
+    @Test
+    public void initWithCaTest() throws NoSuchAlgorithmException, KeyStoreException, CertificateException, IOException {
+        KeyStore ks = KeyStore.getInstance("JKS");
+        ks.load(null, null);
+        ks.setCertificateEntry("alias", Helper.loadCertificate("sm2/chain-ca.crt"));
+
+        TrustManagerFactory fact = TrustManagerFactory.getInstance("X509", new GMProvider());
+        fact.init(ks);
+        TrustManager[] tms = fact.getTrustManagers();
+        Assert.assertEquals(1, tms.length);
+        X509TrustManager tm = (X509TrustManager)tms[0];
+        X509Certificate[] issuers = tm.getAcceptedIssuers();
+        Assert.assertEquals(1, issuers.length);
+        // Should no exception
+        tm.checkServerTrusted(new X509Certificate[] {
+            Helper.loadCertificate("sm2/server_sign.crt"),
+            Helper.loadCertificate("sm2/server_enc.crt")
+        }, null);
     }
 }

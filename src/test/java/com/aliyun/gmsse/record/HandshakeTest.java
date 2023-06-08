@@ -2,14 +2,12 @@ package com.aliyun.gmsse.record;
 
 import org.junit.Assert;
 import org.junit.Test;
+
 import com.aliyun.gmsse.record.Handshake.*;
-import org.mockito.Mockito;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
-
-import static org.mockito.Mockito.when;
-
 
 public class HandshakeTest {
     @Test
@@ -28,14 +26,18 @@ public class HandshakeTest {
 
     @Test
     public void getBytesTest() throws Exception {
-        Type type = Mockito.mock(Type.class);
-        Body body = Mockito.mock(Body.class);
-        when(type.getValue()).thenReturn(1);
-        when(body.getBytes()).thenReturn("test".getBytes("UTF-8"));
-
+        Type type = new Type(1);
+        Body body = new Body() {
+            @Override
+            public byte[] getBytes() throws IOException {
+                return "test".getBytes();
+            }
+        };
         Handshake handshake = new Handshake(type, body);
         byte[] bytes = handshake.getBytes();
-        Assert.assertTrue(new String(bytes, "UTF-8").contains("test"));
+        Assert.assertArrayEquals(new byte[] {
+            0x01, 0x00, 0x00, 0x04, 0x74, 0x65, 0x73, 0x74
+        }, bytes);
     }
 
     @Test
