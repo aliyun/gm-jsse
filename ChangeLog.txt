@@ -1,5 +1,0 @@
-2020-10-22 Version: 1.0.0
-1, release verison 1.0.0
-
-2020-10-20 Version: 1.0-SNAPSHOT
-1, init project
