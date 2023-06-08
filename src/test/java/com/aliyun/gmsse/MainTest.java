@@ -4,7 +4,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.URL;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -27,7 +28,7 @@ import org.junit.Test;
 
 public class MainTest {
     @Test
-    public void test() throws IOException, NoSuchAlgorithmException, KeyManagementException, KeyStoreException, CertificateException, UnrecoverableKeyException {
+    public void test() throws IOException, NoSuchAlgorithmException, KeyManagementException, KeyStoreException, CertificateException, UnrecoverableKeyException, URISyntaxException {
         GMProvider provider = new GMProvider();
         SSLContext sc = SSLContext.getInstance("TLS", provider);
 
@@ -52,8 +53,8 @@ public class MainTest {
 
         SSLSocketFactory ssf = sc.getSocketFactory();
 
-        URL serverUrl = new URL("https://sm2only.ovssl.cn/");
-        HttpsURLConnection conn = (HttpsURLConnection) serverUrl.openConnection();
+        URI serverUrl = new URI("https://sm2only.ovssl.cn/");
+        HttpsURLConnection conn = (HttpsURLConnection) serverUrl.toURL().openConnection();
         conn.setRequestMethod("GET");
         conn.setSSLSocketFactory(ssf);
         Assert.assertEquals(200, conn.getResponseCode());

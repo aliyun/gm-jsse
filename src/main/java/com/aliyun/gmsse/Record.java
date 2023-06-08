@@ -52,5 +52,9 @@ public class Record {
         public int getValue() {
             return value;
         }
+
+        public String getName() {
+            return name;
+        }
     }
 }

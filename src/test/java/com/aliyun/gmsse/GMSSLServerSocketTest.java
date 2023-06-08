@@ -73,6 +73,9 @@ public class GMSSLServerSocketTest {
         Assert.assertFalse(ss.getNeedClientAuth());
         ss.setNeedClientAuth(true);
         Assert.assertTrue(ss.getNeedClientAuth());
+
+        ss.setNeedClientAuth(false);
+        Assert.assertFalse(ss.getNeedClientAuth());
         ss.close();
     }
 
@@ -84,6 +87,8 @@ public class GMSSLServerSocketTest {
         Assert.assertFalse(ss.getWantClientAuth());
         ss.setWantClientAuth(true);
         Assert.assertTrue(ss.getWantClientAuth());
+        ss.setWantClientAuth(false);
+        Assert.assertFalse(ss.getWantClientAuth());
         ss.close();
     }
 

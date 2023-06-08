@@ -7,7 +7,7 @@ public abstract class ConnectionContext {
     protected GMSSLContextSpi sslContext;
     public SSLConfiguration sslConfig;
     protected GMSSLSocket socket;
-    protected GMSSLSession session = new GMSSLSession();
+    protected final GMSSLSession session;
     public boolean isNegotiated = false;
 
     public ConnectionContext(GMSSLContextSpi context, GMSSLSocket socket, SSLConfiguration sslConfig) {

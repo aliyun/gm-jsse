@@ -11,10 +11,6 @@ public class Util {
     private static String HEX = "0123456789abcdef";
 
     public static String hexString(byte[] bytes) {
-        if (bytes == null) {
-            return "";
-        }
-
         StringBuilder sb = new StringBuilder();
         ByteArrayInputStream is = new ByteArrayInputStream(bytes);
         byte[] line = new byte[16];

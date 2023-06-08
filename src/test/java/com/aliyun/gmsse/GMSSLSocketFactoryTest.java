@@ -78,4 +78,15 @@ public class GMSSLSocketFactoryTest {
         Assert.assertNotNull(socket);
         socket.close();
     }
+
+    @Test
+    public void getDefaultCipherSuitesTest() throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, CertificateException, IOException {
+        Assert.assertArrayEquals(new String[] {"ECC-SM2-WITH-SM4-SM3"},  createSSF().getDefaultCipherSuites());
+    }
+
+    @Test
+    public void getSupportedCipherSuitesTest() throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException, CertificateException, IOException  {
+        Assert.assertArrayEquals(new String[] {"ECC-SM2-WITH-SM4-SM3"},  createSSF().getSupportedCipherSuites());
+
+    }
 }
