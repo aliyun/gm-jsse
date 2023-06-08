@@ -66,7 +66,6 @@ public class CertificateRequest extends Handshake.Body {
             int nameLength = (input.read() & 0xFF) << 8 | (input.read() & 0xFF);
             byte[] encoding = new byte[nameLength];
             input.read(encoding, 0, nameLength);
-            // TODO:
             certificateAuthorities.add(encoding);
             count += nameLength + 2;
         }

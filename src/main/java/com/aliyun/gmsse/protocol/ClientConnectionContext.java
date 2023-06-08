@@ -29,7 +29,6 @@ import com.aliyun.gmsse.ProtocolVersion;
 import com.aliyun.gmsse.Record;
 import com.aliyun.gmsse.SSLConfiguration;
 import com.aliyun.gmsse.SecurityParameters;
-import com.aliyun.gmsse.Util;
 import com.aliyun.gmsse.GMSSLSession.ID;
 import com.aliyun.gmsse.handshake.ClientHello;
 import com.aliyun.gmsse.record.Handshake;
