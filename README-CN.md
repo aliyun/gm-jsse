@@ -138,7 +138,7 @@ public class Main {
 
 ## 发行说明
 
-每个版本的详细更改记录在[发行说明](./ChangeLog.txt).
+每个版本的详细更改记录在[发行说明](https://github.com/aliyun/gm-jsse/releases).
 
 ## 许可证
 

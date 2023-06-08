@@ -138,7 +138,7 @@ In two-way authentication, the client needs to pass in two certificates.
 
 ## Changelog
 
-Detailed changes for each release are documented in the [release notes](./ChangeLog.txt).
+Detailed changes for each release are documented in the [release notes](https://github.com/aliyun/gm-jsse/releases).
 
 ## License
 
