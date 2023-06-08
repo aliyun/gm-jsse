@@ -10,19 +10,19 @@ import com.aliyun.gmsse.record.Alert.Description;
 import com.aliyun.gmsse.record.Alert.Level;
 
 import java.io.*;
-import java.lang.reflect.Field;
 
 public class RecordStreamTest {
-    private String path = this.getClass().getClassLoader().getResource("TestFile").getPath();
 
     @Test
     public void writeTest() throws Exception {
-        FileInputStream inputStream = new FileInputStream(path);
-        FileOutputStream outputStream = new FileOutputStream(path);
-        RecordStream recordStream = Mockito.spy(new RecordStream(inputStream, outputStream));
+        ByteArrayInputStream is = new ByteArrayInputStream(new byte[] {});
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        RecordStream recordStream =  new RecordStream(is, os);
         Record record = new Record(Record.ContentType.ALERT, ProtocolVersion.NTLS_1_1, "test".getBytes("UTF-8"));
         recordStream.write(record);
-        Mockito.verify(recordStream, Mockito.times(1)).write(record);
+        Assert.assertArrayEquals(new byte[] {
+            0x15, 0x01, 0x01, 0x00, 0x04, 0x74, 0x65, 0x73, 0x74
+        }, os.toByteArray());
     }
 
     @Test
@@ -60,9 +60,9 @@ public class RecordStreamTest {
 
     @Test
     public void decryptTest() throws Exception {
-        FileInputStream inputStream = new FileInputStream(path);
-        FileOutputStream outputStream = new FileOutputStream(path);
-        RecordStream recordStream = Mockito.spy(new RecordStream(inputStream, outputStream));
+        ByteArrayInputStream is = new ByteArrayInputStream(new byte[] {});
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        RecordStream recordStream =  new RecordStream(is, os);
         byte[] bytes = "test-test-test-test-test-test-test-test-test-test-test-test-test-test".getBytes("UTF-8");
         recordStream.setDecryptIV(new byte[16]);
         recordStream.setDecryptMacKey(new byte[]{11});
@@ -80,9 +80,9 @@ public class RecordStreamTest {
 
     @Test
     public void encryptTest() throws Exception {
-        FileInputStream inputStream = new FileInputStream(path);
-        FileOutputStream outputStream = new FileOutputStream(path);
-        RecordStream recordStream = Mockito.spy(new RecordStream(inputStream, outputStream));
+        ByteArrayInputStream is = new ByteArrayInputStream(new byte[] {});
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        RecordStream recordStream =  new RecordStream(is, os);
         byte[] bytes = "test-test-test-test-test-test-test-test-test-test-test-test-test-test".getBytes("UTF-8");
         SM4Engine sm4Engine = Mockito.mock(SM4Engine.class);
         Mockito.when(sm4Engine.processBlock(new byte[1], 0, new byte[1], 0)).thenReturn(1);
@@ -92,20 +92,16 @@ public class RecordStreamTest {
         Record record = new Record(Record.ContentType.ALERT, ProtocolVersion.NTLS_1_1, "test".getBytes("UTF-8"));
         record = recordStream.encrypt(record);
 
-        Field contentType = Record.class.getDeclaredField("contentType");
-        contentType.setAccessible(true);
-        Field version = Record.class.getDeclaredField("version");
-        version.setAccessible(true);
-        Assert.assertEquals(contentType.get(record), Record.ContentType.ALERT);
-        Assert.assertEquals(version.get(record), ProtocolVersion.NTLS_1_1);
+        Assert.assertEquals(record.contentType, Record.ContentType.ALERT);
+        Assert.assertEquals(record.version, ProtocolVersion.NTLS_1_1);
         Assert.assertEquals(112, record.fragment.length);
     }
 
     @Test
     public void flushTest() throws Exception {
-        FileInputStream inputStream = new FileInputStream(path);
-        FileOutputStream outputStream = new FileOutputStream(path);
-        RecordStream recordStream = Mockito.spy(new RecordStream(inputStream, outputStream));
+        ByteArrayInputStream is = new ByteArrayInputStream(new byte[] {});
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        RecordStream recordStream = Mockito.spy(new RecordStream(is, os));
         recordStream.flush();
         Mockito.verify(recordStream, Mockito.times(1)).flush();
     }
