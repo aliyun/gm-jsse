@@ -1,7 +1,5 @@
 package com.aliyun.gmsse;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -13,20 +11,10 @@ final public class ProtocolVersion implements Comparable {
     private final int minor;
     private final String name;
 
-    // Constructor.
-    // -------------------------------------------------------------------------
     private ProtocolVersion(int major, int minor, String name) {
         this.major = major;
         this.minor = minor;
         this.name = name;
-    }
-
-    // Class methods.
-    // -------------------------------------------------------------------------
-    static ProtocolVersion read(InputStream in) throws IOException {
-        int major = in.read() & 0xFF;
-        int minor = in.read() & 0xFF;
-        return getInstance(major, minor);
     }
 
     public static ProtocolVersion getInstance(int major, int minor) {

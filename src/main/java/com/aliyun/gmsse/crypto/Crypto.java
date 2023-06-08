@@ -2,6 +2,7 @@ package com.aliyun.gmsse.crypto;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -64,8 +65,8 @@ public class Crypto {
 
     public static byte[] encode(byte[] c1x, byte[] c1y, byte[] c3, byte[] c2) throws IOException {
         ASN1EncodableVector v = new ASN1EncodableVector();
-        v.add(new ASN1Integer(c1x));
-        v.add(new ASN1Integer(c1y));
+        v.add(new ASN1Integer(new BigInteger(c1x)));
+        v.add(new ASN1Integer(new BigInteger(c1y)));
         v.add(new DEROctetString(c3));
         v.add(new DEROctetString(c2));
         DERSequence seq = new DERSequence(v);

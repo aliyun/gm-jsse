@@ -52,10 +52,6 @@ public class ClientConnectionContext extends ConnectionContext {
         super(context, socket, new SSLConfiguration(context, true));
     }
 
-    public ClientConnectionContext(GMSSLContextSpi context, GMSSLSocket socket, SSLConfiguration sslConfig) {
-        super(context, socket, sslConfig);
-    }
-
     public ID sessionId;
     public int peerPort;
     public boolean peerVerified;
@@ -311,10 +307,11 @@ public class ClientConnectionContext extends ConnectionContext {
         Record rc = socket.recordStream.read();
         Handshake skef = Handshake.read(new ByteArrayInputStream(rc.fragment));
         ServerKeyExchange ske = (ServerKeyExchange) skef.body;
+        java.security.cert.Certificate[] peerCerts = session.getPeerCertificates();
         // signature cert
-        X509Certificate signCert = session.peerCerts[0];
+        X509Certificate signCert = (X509Certificate)peerCerts[0];
         // encryption cert
-        X509Certificate encryptionCert = session.peerCerts[1];
+        X509Certificate encryptionCert = (X509Certificate)peerCerts[1];
         // verify the signature
         boolean verified = false;
 

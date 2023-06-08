@@ -246,6 +246,17 @@ public class GMSSLSocket extends SSLSocket {
     }
 
     @Override
+    public synchronized void close() throws IOException {
+        if (autoClose) {
+            if (underlyingSocket != null) {
+                underlyingSocket.close();
+            } else {
+                super.close();
+            }
+        }
+    }
+
+    @Override
     public OutputStream getOutputStream() throws IOException {
         if (isClosed()) {
             throw new SocketException("Socket is closed");
@@ -320,6 +331,11 @@ public class GMSSLSocket extends SSLSocket {
             }
             return length;
         }
+
+        @Override
+        public void close() throws IOException {
+            GMSSLSocket.this.close();
+        }
     }
 
     private class AppDataOutputStream extends OutputStream {
@@ -357,5 +373,9 @@ public class GMSSLSocket extends SSLSocket {
             recordStream.flush();
         }
 
+        @Override
+        public void close() throws IOException {
+            GMSSLSocket.this.close();
+        }
     }
 }

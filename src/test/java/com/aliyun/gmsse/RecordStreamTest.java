@@ -5,6 +5,10 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import com.aliyun.gmsse.record.Alert;
+import com.aliyun.gmsse.record.Alert.Description;
+import com.aliyun.gmsse.record.Alert.Level;
+
 import java.io.*;
 import java.lang.reflect.Field;
 
@@ -30,6 +34,27 @@ public class RecordStreamTest {
             Assert.fail();
         } catch (Exception e) {
             Assert.assertEquals("unexpected end of stream", e.getMessage());
+        }
+    }
+
+    @Test
+    public void readAlertTest() throws IOException {
+        Alert alert = new Alert(Level.WARNING, Description.HANDSHAKE_FAILURE);
+        byte[] bytes = alert.getBytes();
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
+        os.write(0x15);
+        os.write(1);
+        os.write(1);
+        os.write((bytes.length >>> 8) & 0xFF);
+        os.write((bytes.length) & 0xFF);
+        os.write(bytes);
+        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(os.toByteArray());
+        RecordStream recordStream = new RecordStream(byteArrayInputStream, null);
+        try {
+            recordStream.read();
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertEquals("handshake_failure", e.getMessage());
         }
     }
 

@@ -4,6 +4,9 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 public class ProtocolVersionTest {
 
@@ -39,7 +42,7 @@ public class ProtocolVersionTest {
     }
 
     @Test
-    public void hachTest() {
+    public void hashTest() {
         Assert.assertEquals(257, ProtocolVersion.NTLS_1_1.hashCode());
     }
 
@@ -48,5 +51,23 @@ public class ProtocolVersionTest {
         Assert.assertFalse(ProtocolVersion.NTLS_1_1.equals(null));
         Assert.assertFalse(ProtocolVersion.NTLS_1_1.equals("null"));
         Assert.assertTrue(ProtocolVersion.NTLS_1_1.equals(ProtocolVersion.NTLS_1_1));
+        Assert.assertFalse(ProtocolVersion.NTLS_1_1.equals(ProtocolVersion.getInstance(1, 2)));
+        Assert.assertFalse(ProtocolVersion.NTLS_1_1.equals(ProtocolVersion.getInstance(2, 2)));
     }
+
+    @Test
+    public void namesOfTest() {
+        List<ProtocolVersion> pvs = ProtocolVersion.namesOf(null);
+        Assert.assertTrue(pvs.size() == 0);
+        Assert.assertTrue(ProtocolVersion.namesOf(new String[] {}).size() == 0);
+    }
+
+    @Test
+    public void toStringArrayTest() {
+        Assert.assertArrayEquals(new String[] {}, ProtocolVersion.toStringArray(null));
+        Assert.assertArrayEquals(new String[] {}, ProtocolVersion.toStringArray(Collections.<ProtocolVersion>emptyList()));
+        ProtocolVersion[] pvs = new ProtocolVersion[] {ProtocolVersion.NTLS_1_1};
+        Assert.assertArrayEquals(new String[] {"NTLSv1.1"}, ProtocolVersion.toStringArray(Arrays.asList(pvs)));
+    }
+    
 }

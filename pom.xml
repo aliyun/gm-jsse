@@ -51,6 +51,7 @@
 
     <properties>
         <jdk>1.7</jdk>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
     <dependencies>
@@ -104,9 +105,6 @@
                             <goal>report</goal>
                         </goals>
                         <configuration>
-                            <excludes>
-                                <exclude>**/GMSSLSession.class</exclude>
-                            </excludes>
                             <dataFile>${project.build.directory}/jacoco.exec</dataFile>
                         </configuration>
                     </execution>

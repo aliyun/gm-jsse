@@ -2,16 +2,15 @@ package com.aliyun.gmsse;
 
 import javax.net.ssl.*;
 import java.security.Principal;
-import java.security.SecureRandom;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
-import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class GMSSLSession implements SSLSession {
 
     private long creationTime;
-    public List<CipherSuite> enabledSuites;
-    public List<ProtocolVersion> enabledProtocols;
+    // public List<CipherSuite> enabledSuites;
+    // public List<ProtocolVersion> enabledProtocols;
     public X509Certificate[] peerCerts;
     public CipherSuite cipherSuite;
     ProtocolVersion protocol;
@@ -19,19 +18,12 @@ public class GMSSLSession implements SSLSession {
     public ID sessionId;
     public String peerHost;
     public int peerPort;
-    public X509KeyManager keyManager;
-    public X509TrustManager trustManager;
-    public SecureRandom random;
     public boolean peerVerified;
-
-    public GMSSLSession(List<CipherSuite> enabledSuites, List<ProtocolVersion> enabledProtocols) {
-        this.creationTime = System.currentTimeMillis();
-        this.enabledSuites = enabledSuites;
-        this.enabledProtocols = enabledProtocols;
-        this.peerVerified = false;
-    }
+    protected final AtomicLong lastAccessedTime;
 
     public GMSSLSession() {
+        this.creationTime = System.currentTimeMillis();
+        this.lastAccessedTime = new AtomicLong(creationTime);
     }
 
     @Override
@@ -56,8 +48,7 @@ public class GMSSLSession implements SSLSession {
 
     @Override
     public long getLastAccessedTime() {
-        // TODO Auto-generated method stub
-        return 0;
+        return lastAccessedTime.get();
     }
 
     @Override

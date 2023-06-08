@@ -55,10 +55,6 @@ public class ServerConnectionContext extends ConnectionContext {
     private SecurityParameters securityParameters = new SecurityParameters();
     List<Handshake> handshakes = new ArrayList<Handshake>();
 
-    public ServerConnectionContext(GMSSLContextSpi context, GMSSLSocket socket) {
-        super(context, socket, new SSLConfiguration(context, false));
-    }
-
     public ServerConnectionContext(GMSSLContextSpi context, GMSSLSocket socket, SSLConfiguration sslConfig) {
         super(context, socket, sslConfig);
     }
