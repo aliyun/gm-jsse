@@ -3,6 +3,7 @@ package com.aliyun.gmsse.protocol;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -14,6 +15,7 @@ import javax.net.ssl.X509KeyManager;
 
 import org.bouncycastle.crypto.engines.SM4Engine;
 import org.bouncycastle.crypto.params.KeyParameter;
+import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
 
 import com.aliyun.gmsse.AlertException;
@@ -182,7 +184,10 @@ public class ClientConnectionContext extends ConnectionContext {
         for (Handshake handshake : handshakes) {
             out.write(handshake.getBytes());
         }
-        byte[] signature = Crypto.hash(out.toByteArray());
+        // byte[] signature = Crypto.hash(out.toByteArray());
+        byte[] source = Crypto.hash(out.toByteArray());
+        PrivateKey key = sslContext.getKeyManager().getPrivateKey("sign");
+        byte[] signature = Crypto.sign((BCECPrivateKey) key,null,source);
         CertificateVerify cv = new CertificateVerify(signature);
         Handshake hs = new Handshake(Handshake.Type.CERTIFICATE_VERIFY, cv);
         Record rc = new Record(ContentType.HANDSHAKE, version, hs.getBytes());

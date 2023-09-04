@@ -19,6 +19,7 @@ import javax.security.auth.x500.X500Principal;
 import org.bouncycastle.crypto.engines.SM4Engine;
 import org.bouncycastle.crypto.params.KeyParameter;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
+import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
 import org.bouncycastle.jcajce.spec.SM2ParameterSpec;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
@@ -123,8 +124,15 @@ public class ServerConnectionContext extends ConnectionContext {
         for (Handshake handshake : handshakes) {
             out.write(handshake.getBytes());
         }
-        byte[] signature = Crypto.hash(out.toByteArray());
-        if (!Arrays.equals(signature, cv.getSignature())) {
+        // byte[] signature = Crypto.hash(out.toByteArray());
+        // if (!Arrays.equals(signature, cv.getSignature())) {
+        //     throw new SSLException("certificate verify failed");
+        // }
+        X509Certificate signCert = session.peerCerts[0];
+        byte[] source = Crypto.hash(out.toByteArray());
+        boolean flag = Crypto.verify((BCECPublicKey)signCert.getPublicKey(),null,source,
+                cv.getSignature());
+        if (!flag) {
             throw new SSLException("certificate verify failed");
         }
         handshakes.add(cf);

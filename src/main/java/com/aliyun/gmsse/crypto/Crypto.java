@@ -17,18 +17,18 @@ import org.bouncycastle.asn1.DERSequence;
 import org.bouncycastle.asn1.DLSequence;
 import org.bouncycastle.asn1.gm.GMNamedCurves;
 import org.bouncycastle.asn1.x9.X9ECParameters;
+import org.bouncycastle.crypto.CipherParameters;
+import org.bouncycastle.crypto.CryptoException;
 import org.bouncycastle.crypto.Digest;
 import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.bouncycastle.crypto.digests.SM3Digest;
 import org.bouncycastle.crypto.engines.SM2Engine;
 import org.bouncycastle.crypto.macs.HMac;
-import org.bouncycastle.crypto.params.ECDomainParameters;
-import org.bouncycastle.crypto.params.ECPrivateKeyParameters;
-import org.bouncycastle.crypto.params.ECPublicKeyParameters;
-import org.bouncycastle.crypto.params.KeyParameter;
-import org.bouncycastle.crypto.params.ParametersWithRandom;
+import org.bouncycastle.crypto.params.*;
+import org.bouncycastle.crypto.signers.SM2Signer;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
+import org.bouncycastle.jce.spec.ECParameterSpec;
 
 public class Crypto {
     private static X9ECParameters x9ECParameters = GMNamedCurves.getByName("sm2p256v1");
@@ -158,5 +158,44 @@ public class Crypto {
         digest.update(bytes, 0, bytes.length);
         digest.doFinal(output, 0);
         return output;
+    }
+
+    public static byte[] sign(BCECPrivateKey ecPriKey, byte[] withId, byte[] srcData){
+        ECParameterSpec parameterSpec = ecPriKey.getParameters();
+        ECDomainParameters domainParameters = new ECDomainParameters(parameterSpec.getCurve(), parameterSpec.getG(),
+                parameterSpec.getN(), parameterSpec.getH());
+        ECPrivateKeyParameters priKeyParameters = new ECPrivateKeyParameters(ecPriKey.getD(), domainParameters);
+        SM2Signer signer = new SM2Signer();
+        CipherParameters param = null;
+        ParametersWithRandom pwr = new ParametersWithRandom(priKeyParameters, new SecureRandom());
+        if (withId != null) {
+            param = new ParametersWithID(pwr, withId);
+        } else {
+            param = pwr;
+        }
+        signer.init(true, param);
+        signer.update(srcData, 0, srcData.length);
+        try {
+            return signer.generateSignature();
+        } catch (CryptoException e) {
+            e.printStackTrace();
+        }
+        return new byte[0];
+    }
+    public static boolean verify(BCECPublicKey ecPublicKey, byte[] withId, byte[] srcData,byte[] sign){
+        ECParameterSpec parameterSpec = ecPublicKey.getParameters();
+        ECDomainParameters domainParameters = new ECDomainParameters(parameterSpec.getCurve(), parameterSpec.getG(),
+                parameterSpec.getN(), parameterSpec.getH());
+        ECPublicKeyParameters pubKeyParameters = new ECPublicKeyParameters(ecPublicKey.getQ(), domainParameters);
+        SM2Signer signer = new SM2Signer();
+        CipherParameters param;
+        if (withId != null) {
+            param = new ParametersWithID(pubKeyParameters, withId);
+        } else {
+            param = pubKeyParameters;
+        }
+        signer.init(false, param);
+        signer.update(srcData, 0, srcData.length);
+        return signer.verifySignature(sign);
     }
 }
