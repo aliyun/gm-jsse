@@ -21,11 +21,11 @@ public class GMSSLContextSpiTest {
         GMSSLContextSpi mySSLContextSpi = new GMSSLContextSpi();
         Method engineCreateSSLEngine = GMSSLContextSpi.class.getDeclaredMethod("engineCreateSSLEngine");
         engineCreateSSLEngine.setAccessible(true);
-        Assert.assertNull(engineCreateSSLEngine.invoke(mySSLContextSpi));
+        Assert.assertNotNull(engineCreateSSLEngine.invoke(mySSLContextSpi));
 
         Method engineCreateSSLEngineMethod = GMSSLContextSpi.class.getDeclaredMethod("engineCreateSSLEngine", String.class, int.class);
         engineCreateSSLEngineMethod.setAccessible(true);
-        Assert.assertNull(engineCreateSSLEngineMethod.invoke(mySSLContextSpi, null, 0));
+        Assert.assertNotNull(engineCreateSSLEngineMethod.invoke(mySSLContextSpi, null, 0));
 
         Method engineGetServerSessionContext = GMSSLContextSpi.class.getDeclaredMethod("engineGetServerSessionContext");
         engineGetServerSessionContext.setAccessible(true);

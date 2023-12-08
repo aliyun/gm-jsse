@@ -46,12 +46,12 @@ public class GMSSLContextSpi extends SSLContextSpi {
 
     @Override
     protected SSLEngine engineCreateSSLEngine() {
-        return null;
+        return new GMSSLEngine(this);
     }
 
     @Override
     protected SSLEngine engineCreateSSLEngine(String host, int port) {
-        return null;
+        return new GMSSLEngine(this, host, port);
     }
 
     @Override
